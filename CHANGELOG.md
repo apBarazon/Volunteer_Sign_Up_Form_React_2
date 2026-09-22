@@ -1,6 +1,6 @@
 # Project Checkpoint & Changelog
 
-This document tracks the progress, architectural decisions, and current status of the **Volunteer Sign-Up Form Application**. Whenever an AI assistant (GitHub Copilot, Antigravity, etc.) or team member makes updates, a new timestamped checkpoint should be added here.
+This document tracks the progress, architectural decisions, and current status of the **Volunteer Sign-Up Form Application**. Whenever an AI assistant or team member makes updates, a new timestamped checkpoint should be added here.
 
 ---
 
@@ -8,7 +8,7 @@ This document tracks the progress, architectural decisions, and current status o
 
 * **Goal**: A volunteer sign-up web application where users can view available volunteer events and submit a sign-up form.
 * **Stack**:
-  * **Frontend**: React (Vite) + Zod validation *(To be scaffolded in `client/`)*
+   * **Frontend**: React (Vite) + Zod validation in `client/`
   * **Backend**: Node.js + Express (ES Modules) in `server/`
   * **Database**: MariaDB (local) via Sequelize ORM
   * **Validation**: Zod (shared schema across client and server)
@@ -47,6 +47,24 @@ This document tracks the progress, architectural decisions, and current status o
 ---
 
 ## 📝 Checkpoint Log
+
+### [Checkpoint 5] Antigravity Handoff & GitHub Publishing Recovery
+**Timestamp**: `2026-09-22`
+**Contributors**: User, GitHub Copilot
+
+#### What Was Accomplished:
+2. **GitHub Publishing Recovery**:
+   - Integrated the separately initialized remote history without losing the local UI implementation.
+   - Updated the published commit identity to use GitHub's no-reply address, keeping the user's personal email private.
+   - Successfully pushed the completed project to `origin/main`.
+   - Preserved the pre-email-fix local history on the `local-before-email-fix` branch.
+3. **Documentation**:
+   - Updated this changelog and [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) to reflect the handoff and current repository state.
+
+#### Current Status:
+- The working `main` branch is clean and synchronized with `origin/main`.
+- The application implementation is complete according to the Component Status Board above.
+- Future commits should use a GitHub no-reply email unless email privacy protection is intentionally disabled.
 
 ### [Checkpoint 4] Full End-to-End Implementation: Controllers, Routes, DB Auto-Sync & React SPA
 **Timestamp**: `2026-09-22 23:15:00 (GMT+8)`  
