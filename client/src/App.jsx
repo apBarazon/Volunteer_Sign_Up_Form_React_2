@@ -1,122 +1,145 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect } from "react";
+import { checkServerHealth, getEvents, submitSignup } from "./api/volunteerApi.js";
+import VolunteerForm from "./components/VolunteerForm.jsx";
+import ConfirmationModal from "./components/ConfirmationModal.jsx";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [serverOnline, setServerOnline] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmedSignup, setConfirmedSignup] = useState(null);
+
+  const fetchStatusAndEvents = async () => {
+    setIsLoadingEvents(true);
+    const health = await checkServerHealth();
+    setServerOnline(health.ok);
+
+    if (health.ok) {
+      const eventRes = await getEvents();
+      setEvents(eventRes.ok ? (eventRes.events || []) : []);
+    } else {
+      setEvents([]);
+    }
+    setIsLoadingEvents(false);
+  };
+
+  useEffect(() => {
+    let isSubscribed = true;
+
+    async function initialLoad() {
+      setIsLoadingEvents(true);
+      const health = await checkServerHealth();
+      if (!isSubscribed) return;
+      setServerOnline(health.ok);
+
+      if (health.ok) {
+        const eventRes = await getEvents();
+        if (!isSubscribed) return;
+        setEvents(eventRes.ok ? (eventRes.events || []) : []);
+      } else {
+        setEvents([]);
+      }
+      setIsLoadingEvents(false);
+    }
+
+    initialLoad();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
+
+  const handleSignupSubmit = async (payload) => {
+    setIsSubmitting(true);
+    const res = await submitSignup(payload);
+    setIsSubmitting(false);
+
+    if (res.ok) {
+      setConfirmedSignup(res.data);
+      return { ok: true };
+    } else {
+      return {
+        ok: false,
+        error: res.error,
+        details: res.details,
+      };
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-layout">
+      {/* Top Navigation / Header */}
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-icon">🤝</span>
+          <div>
+            <h1>Volunteer Hub</h1>
+            <p className="brand-tagline">Sign-Up &amp; Event Management Portal</p>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        {/* Live System Status Badge */}
+        <div className="status-badges">
+          <div className={`status-pill ${serverOnline ? "pill-online" : "pill-offline"}`}>
+            <span className="status-dot"></span>
+            <span>
+              {serverOnline ? "Backend API: Online" : "Backend API: Offline"}
+            </span>
+          </div>
+          <button
+            className="btn-refresh"
+            onClick={fetchStatusAndEvents}
+            title="Refresh connection and events"
+          >
+            🔄 Refresh
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* Main Content Area */}
+      <main className="app-main">
+        {!serverOnline && (
+          <div className="banner banner-warning">
+            <strong>⚠️ Backend Server is not reachable!</strong>
+            <p>
+              Make sure you started the Express server in the <code>server/</code> folder:
+              <br />
+              <code>cd server ; npm run dev</code>
+            </p>
+          </div>
+        )}
+
+        {serverOnline && events.length === 0 && !isLoadingEvents && (
+          <div className="banner banner-info">
+            <strong>ℹ️ MariaDB Database Connected!</strong>
+            <p>
+              Database is ready. Once events are added, they will show up in the dropdown below.
+            </p>
+          </div>
+        )}
+
+        <VolunteerForm
+          events={events}
+          onSubmit={handleSignupSubmit}
+          isSubmitting={isSubmitting}
+          serverStatus={serverOnline ? "connected" : "disconnected"}
+        />
+      </main>
+
+      {/* Confirmation Modal */}
+      {confirmedSignup && (
+        <ConfirmationModal
+          signupData={confirmedSignup}
+          onClose={() => setConfirmedSignup(null)}
+        />
+      )}
+
+      {/* Footer */}
+      <footer className="app-footer">
+        <p>Volunteer Sign-Up Form App &bull; Built with React, Express, Sequelize &amp; MariaDB</p>
+      </footer>
+    </div>
+  );
 }
-
-export default App

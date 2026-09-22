@@ -26,23 +26,50 @@ This document tracks the progress, architectural decisions, and current status o
 | **Backend Config** | [`server/package.json`](./server/package.json) | ✅ Complete | Dependencies: Express, Sequelize, MySQL2, Zod, CORS, Dotenv |
 | **Backend Config** | [`server/.env`](./server/.env) | ✅ Complete | Database connection variables (port 3306, DB `volunteer_app`) |
 | **Backend Config** | [`server/src/config/db.js`](./server/src/config/db.js) | ✅ Complete | Sequelize MariaDB connection setup |
-| **Backend Server** | [`server/src/server.js`](./server/src/server.js) | ✅ Complete | Model associations, DB authenticate, server listener |
-| **Backend Server** | [`server/src/app.js`](./server/src/app.js) | 🟡 Partial | Express app with CORS and `/api/health`. Needs API routes & error handler mounted |
+| **Backend Server** | [`server/src/server.js`](./server/src/server.js) | ✅ Complete | Associations, auto-sync tables, sample event seeding, listener |
+| **Backend Server** | [`server/src/app.js`](./server/src/app.js) | ✅ Complete | Express app with CORS, JSON parser, routes mounted, and error handler |
 | **Database Models** | [`server/src/models/volunteer.model.js`](./server/src/models/volunteer.model.js) | ✅ Complete | Volunteer entity (`id`, `full_name`, `email`, `phone`) |
 | **Database Models** | [`server/src/models/event.model.js`](./server/src/models/event.model.js) | ✅ Complete | Event entity (`id`, `title`, `description`, `event_date`, `location`, `capacity`) |
 | **Database Models** | [`server/src/models/signup.model.js`](./server/src/models/signup.model.js) | ✅ Complete | Join table linking `volunteer_id` and `event_id` with unique constraint |
 | **Validation** | [`server/src/schemas/volunteer.schema.js`](./server/src/schemas/volunteer.schema.js) | ✅ Complete | Zod schema validating volunteer sign-up inputs |
 | **Middleware** | [`server/src/middleware/validate.js`](./server/src/middleware/validate.js) | ✅ Complete | Express middleware running Zod schema validation on `req.body` |
-| **Middleware** | [`server/src/middleware/errorHandler.js`](./server/src/middleware/errorHandler.js) | ⏳ Stub | Empty stub (`export {}`), needs global error response handler |
-| **Controllers** | [`server/src/controllers/volunteer.controller.js`](./server/src/controllers/volunteer.controller.js) | ⏳ Stub | Empty stub (`export {}`), needs `signup` handler logic |
-| **Controllers** | [`server/src/controllers/event.controller.js`](./server/src/controllers/event.controller.js) | ⏳ Stub | Empty stub (`export {}`), needs `getEvents` handler logic |
-| **Routes** | [`server/src/routes/volunteer.routes.js`](./server/src/routes/volunteer.routes.js) | ⏳ Stub | Empty stub (`export {}`), needs `POST /signup` |
-| **Routes** | [`server/src/routes/event.routes.js`](./server/src/routes/event.routes.js) | ⏳ Stub | Empty stub (`export {}`), needs `GET /` |
-| **Frontend** | `client/` | 🟡 Initialized | Vite + React 19 app created with ESLint, dependencies installed, ready for UI |
+| **Middleware** | [`server/src/middleware/errorHandler.js`](./server/src/middleware/errorHandler.js) | ✅ Complete | Global error handler with clean JSON responses & Sequelize error handling |
+| **Controllers** | [`server/src/controllers/volunteer.controller.js`](./server/src/controllers/volunteer.controller.js) | ✅ Complete | `signup` handler: capacity check, duplicate check, volunteer create, signup insert |
+| **Controllers** | [`server/src/controllers/event.controller.js`](./server/src/controllers/event.controller.js) | ✅ Complete | `getEvents` handler: queries events ordered by date |
+| **Routes** | [`server/src/routes/volunteer.routes.js`](./server/src/routes/volunteer.routes.js) | ✅ Complete | `POST /signup` with Zod validation middleware |
+| **Routes** | [`server/src/routes/event.routes.js`](./server/src/routes/event.routes.js) | ✅ Complete | `GET /` to fetch upcoming events |
+| **Frontend UI** | [`client/src/App.jsx`](./client/src/App.jsx) | ✅ Complete | SPA with live backend connection badge, error banner, and layout |
+| **Frontend API** | [`client/src/api/volunteerApi.js`](./client/src/api/volunteerApi.js) | ✅ Complete | Fetch wrappers for health check, events list, and signup submit |
+| **Frontend Form** | [`client/src/components/VolunteerForm.jsx`](./client/src/components/VolunteerForm.jsx) | ✅ Complete | Form with event dropdown, validation, and Live Data Inspector |
+| **Frontend Modal** | [`client/src/components/ConfirmationModal.jsx`](./client/src/components/ConfirmationModal.jsx) | ✅ Complete | Success popup dialog with registration summary |
+| **Frontend Schema** | [`client/src/schemas/volunteer.schema.js`](./client/src/schemas/volunteer.schema.js) | ✅ Complete | Client-side Zod validation matching backend |
 
 ---
 
 ## 📝 Checkpoint Log
+
+### [Checkpoint 4] Full End-to-End Implementation: Controllers, Routes, DB Auto-Sync & React SPA
+**Timestamp**: `2026-09-22 23:15:00 (GMT+8)`  
+**Contributors**: Antigravity, User
+
+#### What Was Accomplished:
+1. **Backend Implementation**:
+   - Implemented `getEvents` in [`event.controller.js`](./server/src/controllers/event.controller.js).
+   - Implemented `signup` in [`volunteer.controller.js`](./server/src/controllers/volunteer.controller.js) with event existence verification, capacity limit check, duplicate prevention, and transactional record creation.
+   - Connected routes in [`event.routes.js`](./server/src/routes/event.routes.js) and [`volunteer.routes.js`](./server/src/routes/volunteer.routes.js).
+   - Implemented global error handling in [`errorHandler.js`](./server/src/middleware/errorHandler.js).
+   - Mounted routes & error handler in [`app.js`](./server/src/app.js).
+   - Configured `sequelize.sync({ alter: true })` in [`server.js`](./server/src/server.js) so tables are created automatically on MariaDB startup without typing SQL.
+   - Added automatic seeding of 3 realistic community events into MariaDB if the table is empty.
+2. **Frontend React SPA Built**:
+   - Installed `zod` and created client validation schema in `client/src/schemas/volunteer.schema.js`.
+   - Created API client in `client/src/api/volunteerApi.js` connecting to backend endpoints.
+   - Built `VolunteerForm.jsx` with input handling, inline error feedback, and a built-in educational **Live Data Inspector** (allows students/teachers to see React state & JSON payload in real time).
+   - Built `ConfirmationModal.jsx` for registration success details.
+   - Built modern, responsive styles in `client/src/App.css`.
+   - Passed all strict ESLint checks (`npm run lint` = 0 errors) and verified production build (`vite build` = 139ms).
+
+---
 
 ### [Checkpoint 3] Repository Hardening & Codebase Explainer Guide
 **Timestamp**: `2026-09-22 22:30:00 (GMT+8)`  
