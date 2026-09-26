@@ -99,8 +99,8 @@ try {
   await sequelize.authenticate();
   console.log("✅ MariaDB database connection established successfully.");
 
-  // Sync all models — creates/alters tables as needed
-  await sequelize.sync({ alter: true });
+  // Synchronize missing tables without repeatedly rewriting existing constraints.
+  await sequelize.sync();
   console.log("✅ Database tables synchronized.");
 
   // Seed starter data
@@ -117,8 +117,5 @@ try {
   console.log("  2. Open http://localhost/phpmyadmin and verify the database exists.");
   console.log("  3. Check server/.env to ensure DB_USER, DB_PASSWORD, and DB_PORT match your XAMPP settings.\n");
 
-  // Still start the server so health checks report the status
-  app.listen(port, () => {
-    console.log(`⚠️  Express server running on http://localhost:${port} (Database offline)`);
-  });
+  process.exitCode = 1;
 }

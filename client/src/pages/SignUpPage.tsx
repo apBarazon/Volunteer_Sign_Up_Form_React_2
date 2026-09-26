@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { submitApplication } from "../api/api";
+import { applicationSchema } from "../schemas/application.schema";
 import {
   initialFormData,
   type ApplicationFormData,
@@ -13,37 +14,14 @@ import {
 
 type Errors = Partial<Record<keyof ApplicationFormData, string>>;
 
-// ---- Validation, one function per step, same pattern as validateShow1/validateShow2 ----
+function getValidationErrors(data: ApplicationFormData): Errors {
+  const result = applicationSchema.safeParse(data);
+  if (result.success) return {};
 
-function validateStep1(data: ApplicationFormData): Errors {
   const errors: Errors = {};
-  if (!data.firstName.trim()) errors.firstName = "First name is required.";
-  if (!data.lastName.trim()) errors.lastName = "Last name is required.";
-  if (!data.email.trim()) errors.email = "Email is required.";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = "Invalid email.";
-  if (!data.phone.trim()) errors.phone = "Phone number is required.";
-  else if (!/^[0-9+\-\s()]{7,}$/.test(data.phone)) errors.phone = "Invalid phone number.";
-  if (data.age && (isNaN(Number(data.age)) || Number(data.age) < 0)) {
-    errors.age = "Age must be a valid number.";
-  }
-  return errors;
-}
-
-function validateStep2(data: ApplicationFormData): Errors {
-  const errors: Errors = {};
-  if (data.availability.length === 0) {
-    errors.availability = "Please select at least one available time slot.";
-  }
-  if (data.experience.length > 300) {
-    errors.experience = "Please keep this under 300 characters.";
-  }
-  return errors;
-}
-
-function validateStep3(data: ApplicationFormData): Errors {
-  const errors: Errors = {};
-  if (!data.agreeTerms) {
-    errors.agreeTerms = "You must agree to the volunteer terms and code of conduct.";
+  for (const issue of result.error.issues) {
+    const field = issue.path[0] as keyof ApplicationFormData;
+    if (field && !errors[field]) errors[field] = issue.message;
   }
   return errors;
 }
@@ -68,7 +46,16 @@ function SignUpPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const sanitizedValue =
+      name === "firstName" || name === "lastName" || name === "city"
+        ? value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ\s'-]/g, "")
+        : name === "age"
+          ? value.replace(/[^0-9]/g, "")
+          : name === "phone"
+            ? value.replace(/[^0-9]/g, "").slice(0, 11)
+            : value;
+
+    setFormData((prev) => ({ ...prev, [name]: sanitizedValue }));
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   }
 
@@ -95,9 +82,16 @@ function SignUpPage() {
   }
 
   function handleNext() {
-    let stepErrors: Errors = {};
-    if (step === 1) stepErrors = validateStep1(formData);
-    if (step === 2) stepErrors = validateStep2(formData);
+    const stepFields: Record<1 | 2, Array<keyof ApplicationFormData>> = {
+      1: ["firstName", "lastName", "email", "phone", "age", "city"],
+      2: ["availability", "experience"],
+    };
+    const allErrors = getValidationErrors(formData);
+    const stepErrors = Object.fromEntries(
+      stepFields[step as 1 | 2]
+        ?.filter((field) => allErrors[field])
+        .map((field) => [field, allErrors[field]]) ?? []
+    ) as Errors;
     setErrors(stepErrors);
     if (Object.keys(stepErrors).length === 0) {
       setStep((prev) => (prev < 4 ? ((prev + 1) as 1 | 2 | 3 | 4) : prev));
@@ -109,7 +103,10 @@ function SignUpPage() {
   }
 
   function handleReview() {
-    const step3Errors = validateStep3(formData);
+    const allErrors = getValidationErrors(formData);
+    const step3Errors: Errors = allErrors.agreeTerms
+      ? { agreeTerms: allErrors.agreeTerms }
+      : {};
     setErrors(step3Errors);
     if (Object.keys(step3Errors).length === 0) setStep(4);
   }
@@ -119,7 +116,12 @@ function SignUpPage() {
     setSubmitError("");
     setIsSubmitting(true);
     try {
-      await submitApplication(opportunity.id, formData);
+      const validation = applicationSchema.safeParse(formData);
+      if (!validation.success) {
+        setErrors(getValidationErrors(formData));
+        return;
+      }
+      await submitApplication(opportunity.id, validation.data);
       setSubmittedApplication(formData); // save to Context, same idea as setUser(formData)
       navigate("/my-applications");
     } catch (err) {
@@ -170,11 +172,22 @@ function SignUpPage() {
             {errors.email && <p className="error">{errors.email}</p>}
 
             <label>Phone Number</label>
-            <input name="phone" value={formData.phone} onChange={handleChange} />
+            <input
+              name="phone"
+              inputMode="numeric"
+              maxLength={11}
+              value={formData.phone}
+              onChange={handleChange}
+            />
             {errors.phone && <p className="error">{errors.phone}</p>}
 
             <label>Age (Optional)</label>
-            <input name="age" value={formData.age} onChange={handleChange} />
+            <input
+              name="age"
+              inputMode="numeric"
+              value={formData.age}
+              onChange={handleChange}
+            />
             {errors.age && <p className="error">{errors.age}</p>}
 
             <label>City (Optional)</label>

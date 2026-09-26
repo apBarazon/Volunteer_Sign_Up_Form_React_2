@@ -64,15 +64,7 @@ export async function submitApplication(req, res, next) {
     skills = [],
     heardAbout,
     agreeTerms,
-  } = req.body;
-
-  // Basic server-side validation
-  if (!volunteerId || !firstName || !lastName || !email || !phone) {
-    return res.status(400).json({ message: "Missing required fields." });
-  }
-  if (!agreeTerms) {
-    return res.status(400).json({ message: "You must agree to the volunteer terms." });
-  }
+  } = req.validatedBody;
 
   const t = await sequelize.transaction();
   try {
