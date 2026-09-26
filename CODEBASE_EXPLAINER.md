@@ -27,6 +27,12 @@ Think of your web application like a **restaurant**:
 2. **The Backend (`server/`)**: The waiter and kitchen staff. It listens for requests from the browser, validates the data, processes it, and talks to the database.
 3. **The Database (MariaDB in XAMPP)**: The pantry / file cabinet. This is where your data permanently lives (even if you turn off the computer).
 
+### Current User Flow
+
+The home page is public, so visitors can browse and search opportunities without an account. Clicking **Apply Now** stores the selected opportunity in React context and opens `/signup`. The route guard sends logged-out visitors to `/login`, preserving `/signup` as the return path. After registration or login, the user returns to the application form.
+
+Submitting an application requires a valid JWT. The backend stores that account's ID on the application row. The protected `/api/applications` query filters by that account ID, so **My Applications** shows only the current user's submissions.
+
 ---
 
 ## 📂 The Complete Folder Walkthrough
@@ -59,15 +65,17 @@ This is a **Node.js + Express** server. It runs on `http://localhost:3000`.
     * `zod`: The validation library that makes sure emails look like emails and names aren't empty.
     * `cors`: Allows your frontend (`localhost:5173`) to talk to your backend (`localhost:3000`) without the browser blocking it for security reasons.
     * `dotenv`: Loads secret settings from your `.env` file into code.
+    * `bcryptjs`: Hashes passwords before they are stored.
+    * `jsonwebtoken`: Creates and verifies login sessions represented by JWTs.
 * **[`server/.env`](./server/.env)**
   * **The secret credentials**: Holds database passwords, usernames, and port numbers.
   * *Why keep it separate?* You never want to hardcode database passwords in your code files.
 * **[`server/src/config/db.js`](./server/src/config/db.js)**
   * **The database connector**: Initializes Sequelize with your credentials from `.env`. When the server starts, it uses this file to connect to MariaDB in XAMPP.
 * **[`server/src/server.js`](./server/src/server.js)**
-  * **The ignition key**: The actual starting point of the backend. It tests the MariaDB connection (`sequelize.authenticate()`), links all models together, and tells Express to start listening on port 3000.
+  * **The ignition key**: The actual starting point of the backend. It tests MariaDB, links the account/application/opportunity models, creates missing tables, adds the `account_id` column to an existing applications table when needed, seeds starter data, and starts port 3000.
 * **[`server/src/app.js`](./server/src/app.js)**
-  * **The Express setup**: Configures middleware like CORS and `express.json()` (so Express can understand incoming JSON data), and where all routes are plugged in.
+  * **The Express setup**: Configures CORS and `express.json()`, mounts public opportunity routes, mounts authentication routes, protects application routes, and installs the global error handler.
 
 #### The Data Models (`server/src/models/`)
 *These define what your MariaDB tables look like, translated into JavaScript:*
@@ -77,6 +85,10 @@ This is a **Node.js + Express** server. It runs on `http://localhost:3000`.
   * Defines the **`events`** table: stores `id`, `title`, `description`, `event_date`, `location`, and `capacity`.
 * **[`server/src/models/signup.model.js`](./server/src/models/signup.model.js)**
   * Defines the **`signups`** table: This is the **bridge / join table**. It connects a `volunteer_id` to an `event_id` with a status (`pending`, `confirmed`, `cancelled`). It prevents the same person from signing up for the exact same event twice.
+* **[`server/src/models/account.model.js`](./server/src/models/account.model.js)**
+  * Defines the separate **`accounts`** table used for authentication. It stores a unique email and a bcrypt password hash, never the plain-text password.
+* **[`server/src/models/userApplication.model.js`](./server/src/models/userApplication.model.js)**
+  * Defines the existing **`users`** table that stores submitted applications. Its nullable `account_id` column links new applications to the login account that submitted them. It remains separate from `accounts` because one account can submit multiple applications.
 
 #### Validation & Security (`server/src/schemas/` & `server/src/middleware/`)
 * **[`server/src/schemas/volunteer.schema.js`](./server/src/schemas/volunteer.schema.js)**
@@ -89,54 +101,79 @@ This is a **Node.js + Express** server. It runs on `http://localhost:3000`.
   * **The bouncer**: An Express middleware function. Before a request touches your database, this checks the incoming data against the Zod schema. If the user sent a broken email, it immediately sends back a `400 Bad Request` with error messages.
 * **[`server/src/middleware/errorHandler.js`](./server/src/middleware/errorHandler.js)**
   * **The safety net**: If anything crashes unexpectedly (e.g. database down, server glitch), this catches the error and sends a clean JSON error response instead of crashing the whole server.
+* **[`server/src/middleware/requireAuth.js`](./server/src/middleware/requireAuth.js)**
+  * **The security checkpoint**: Reads `Authorization: Bearer <token>`, verifies the JWT with `JWT_SECRET`, loads the account, and places it on `req.account`. Requests without a valid token receive `401 Unauthorized`.
+* **[`server/src/schemas/auth.schema.js`](./server/src/schemas/auth.schema.js)**
+  * Validates authentication credentials: a properly formatted email and a password between 8 and 128 characters.
+* **[`server/src/schemas/application.schema.js`](./server/src/schemas/application.schema.js)**
+  * Validates every field in the four-step application before the controller can write to MariaDB.
 
 #### Routes & Controllers (`server/src/routes/` & `server/src/controllers/`)
 * **[`server/src/routes/volunteer.routes.js`](./server/src/routes/volunteer.routes.js)** & **[`server/src/routes/event.routes.js`](./server/src/routes/event.routes.js)**
   * **The road signs (URLs)**: Defines the web addresses, like:
     * `GET /api/events` (Show me the list of events)
-    * `POST /api/volunteers/signup` (Submit my sign-up form)
+    * `POST /api/volunteers/signup` (Legacy event-based sign-up endpoint)
+    * The current four-step portal submits through `POST /api/applications`.
 * **[`server/src/controllers/volunteer.controller.js`](./server/src/controllers/volunteer.controller.js)** & **[`server/src/controllers/event.controller.js`](./server/src/controllers/event.controller.js)**
   * **The business logic (The brain)**: The actual code that runs when someone visits those URLs.
     * When someone calls `/api/events`, the controller asks Sequelize: "Hey, fetch all rows from the `events` table and return them as JSON."
     * When someone calls `/api/volunteers/signup`, the controller checks if the event has room, creates the volunteer record, and saves the signup.
+* **[`server/src/controllers/auth.controller.js`](./server/src/controllers/auth.controller.js)**
+  * Handles account creation, password comparison during login, JWT creation, and the current-account response.
+* **[`server/src/controllers/application.controller.js`](./server/src/controllers/application.controller.js)**
+  * Lists only applications where `account_id` matches `req.account.id`, and saves that ID when a new application is submitted.
+* **[`server/src/routes/auth.routes.js`](./server/src/routes/auth.routes.js)**
+  * Defines `POST /api/auth/register`, `POST /api/auth/login`, and protected `GET /api/auth/me`.
+* **[`server/src/routes/application.routes.js`](./server/src/routes/application.routes.js)**
+  * Requires authentication for both reading and submitting applications, then applies Zod validation to submissions.
 
 ---
 
 ### 3. Frontend Files (`client/`) — "The Dining Room & User Interface"
 
-This is a **React + Vite** app. It runs on `http://localhost:5173`.
+This is a **React + TypeScript + Vite** app. It runs on `http://localhost:5173`.
 
 * **[`client/index.html`](./client/index.html)**
   * The single HTML page loaded by the browser. It has a single container: `<div id="root"></div>`. React takes over this `div` and paints the entire UI inside it.
-* **[`client/vite.config.js`](./client/vite.config.js)**
+* **[`client/vite.config.ts`](./client/vite.config.ts)**
   * Configures **Vite**, the high-speed development server and bundler.
 * **[`client/package.json`](./client/package.json)**
   * Lists frontend packages: `react`, `react-dom`, and Vite dev tools.
 * **[`client/eslint.config.js`](./client/eslint.config.js)**
   * Linter configuration: Checks for syntax mistakes or unused variables in your code.
-* **[`client/src/main.jsx`](./client/src/main.jsx)**
+* **[`client/src/main.tsx`](./client/src/main.tsx)**
   * The entry door for React: Takes the `App` component and injects it into `<div id="root"></div>`.
-* **[`client/src/App.jsx`](./client/src/App.jsx)**
-  * The main React component: Where the header, sign-up form, and modal will be assembled.
-* **[`client/src/index.css`](./client/src/index.css)** & **[`client/src/App.css`](./client/src/App.css)**
-  * The CSS style sheets controlling colors, fonts, margins, and buttons.
+* **[`client/src/App.tsx`](./client/src/App.tsx)**
+  * The main React component: Creates the SPA routes, places the auth provider around the app, and guards signup and My Applications.
+* **[`client/src/context/AuthContext.tsx`](./client/src/context/AuthContext.tsx)**
+  * Stores the JWT in local storage, restores the account with `/api/auth/me`, and exposes login, registration, and logout actions.
+* **[`client/src/components/RequireAuth.tsx`](./client/src/components/RequireAuth.tsx)**
+  * A React Router guard that redirects guests to login and preserves the page they were trying to reach.
+* **[`client/src/components/Navbar.tsx`](./client/src/components/Navbar.tsx)**
+  * Displays public navigation plus login/register links for guests, or My Applications/logout for authenticated users.
+* **[`client/src/pages/LoginPage.tsx`](./client/src/pages/LoginPage.tsx)** and **[`client/src/pages/RegisterPage.tsx`](./client/src/pages/RegisterPage.tsx)**
+  * Render the credential forms and use the client Zod schema before calling the auth API.
+* **[`client/src/pages/SignUpPage.tsx`](./client/src/pages/SignUpPage.tsx)**
+  * The four-step application form. It remains an SPA view: moving between steps changes React state without a full page reload.
+* **[`client/src/pages/MyApplicationsPage.tsx`](./client/src/pages/MyApplicationsPage.tsx)**
+  * Fetches the authenticated user's applications using the bearer token and displays the returned records.
+* **[`client/src/api/api.ts`](./client/src/api/api.ts)**
+  * Centralizes fetch calls and attaches `Authorization: Bearer <jwt>` to auth-protected requests.
+* **[`client/src/index.css`](./client/src/index.css)**
+  * The CSS stylesheet controlling colors, fonts, margins, auth forms, and buttons.
 
 ---
 
 ## 🔄 A Complete Data Walkthrough (Example)
 
-When a volunteer submits the sign-up form:
+When an authenticated volunteer submits the application form:
 
-1. **User Action**: The volunteer types their name, email, and picks "Beach Cleanup" from the dropdown, then clicks **"Sign Up"**.
-2. **Frontend Validation (Browser)**: React checks with Zod to make sure the email is valid before even sending it over the network.
-3. **HTTP Request**: React sends a `POST` request containing `{ fullName: "Alex", email: "alex@example.com", eventId: 1 }` to `http://localhost:3000/api/volunteers/signup`.
-4. **Backend Security**: `server/src/middleware/validate.js` intercepts the request and verifies the data.
-5. **Controller Logic**: `volunteer.controller.js` runs:
-   - Finds or creates the volunteer in MariaDB.
-   - Checks if "Beach Cleanup" is full.
-   - Inserts a new row into the `signups` table.
-6. **HTTP Response**: The server sends `{ success: true, message: "Signed up successfully!" }` back to the browser.
-7. **UI Update**: React receives the success response and pops up `ConfirmationModal.jsx` displaying: *"You're in! See you at Beach Cleanup!"*
+1. **User Action**: The user selects an opportunity, completes the four-step form, and clicks **Confirm & Submit**.
+2. **Frontend Validation**: The client Zod schema checks names, email, phone, age, availability, experience, skills, and terms.
+3. **Authenticated Request**: `client/src/api/api.ts` sends the application and `Authorization: Bearer <jwt>` to `POST /api/applications`.
+4. **Backend Security**: `requireAuth` verifies the JWT and loads `req.account`; `validate(applicationSchema)` checks the request body.
+5. **Ownership**: The controller writes `account_id = req.account.id` with the application and decrements the opportunity's remaining spots in a transaction.
+6. **My Applications**: Later, `GET /api/applications` filters by that same account ID, so another account cannot see the record.
 
 ---
 
@@ -144,10 +181,13 @@ When a volunteer submits the sign-up form:
 
 | Question | Simple Answer |
 |---|---|
-| **What is our frontend?** | React (created with Vite), styled with CSS, running on port 5173. |
+| **What is our frontend?** | React + TypeScript (created with Vite), styled with CSS, running on port 5173. |
 | **What is our backend?** | Node.js with Express, running on port 3000. |
 | **What is our database?** | MariaDB, running locally via XAMPP on default port 3306. |
 | **What is Sequelize?** | An ORM that turns JavaScript code into SQL queries for MariaDB. |
 | **What is Zod?** | A data validator that ensures form inputs (like emails) are valid. |
+| **How does login work?** | Passwords are hashed with bcryptjs; a JWT identifies the account on later requests. |
+| **Why are accounts separate from applications?** | One account can submit multiple applications, so login identities and application records need separate tables. |
+| **How is My Applications private?** | The backend filters application rows by the authenticated account ID, not by a client-supplied email. |
 | **Why is there client and server?** | To keep the user interface separated from database operations and server logic. |
 

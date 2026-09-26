@@ -3,6 +3,52 @@ import type { ApplicationFormData } from "../types/ApplicationFormData";
 
 // Requests go to /api/... which Vite proxies to http://localhost:3000 during dev.
 const BASE_URL = "/api";
+const TOKEN_KEY = "volunteer_portal_token";
+
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem(TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function parseError(res: Response, fallback: string) {
+  const body = await res.json().catch(() => ({}));
+  throw new Error(body.message || body.error || fallback);
+}
+
+export type AuthAccount = {
+  id: number;
+  email: string;
+  createdAt: string;
+};
+
+type AuthResponse = { token: string; account: AuthAccount };
+
+export async function registerAccount(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch(`${BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) await parseError(res, "Could not create your account.");
+  return res.json();
+}
+
+export async function loginAccount(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch(`${BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) await parseError(res, "Could not log you in.");
+  return res.json();
+}
+
+export async function getCurrentAccount(): Promise<AuthAccount> {
+  const res = await fetch(`${BASE_URL}/auth/me`, { headers: authHeaders() });
+  if (!res.ok) await parseError(res, "Your session has expired.");
+  const body = await res.json();
+  return body.account;
+}
 
 // ── Opportunities ─────────────────────────────────────────────────────────────
 
@@ -28,7 +74,7 @@ export async function submitApplication(
 ) {
   const res = await fetch(`${BASE_URL}/applications`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ volunteerId, ...data }),
   });
   if (!res.ok) {
@@ -58,7 +104,7 @@ export type ApplicationRecord = {
 };
 
 export async function fetchApplications(): Promise<ApplicationRecord[]> {
-  const res = await fetch(`${BASE_URL}/applications`);
-  if (!res.ok) throw new Error("Failed to load applications.");
+  const res = await fetch(`${BASE_URL}/applications`, { headers: authHeaders() });
+  if (!res.ok) await parseError(res, "Failed to load applications.");
   return res.json();
 }

@@ -10,6 +10,7 @@ import Volunteer from "./models/volunteer.model.js";
 // New models (classmate's data model, used by the frontend)
 import VolunteerOpportunity from "./models/volunteerOpportunity.model.js";
 import UserApplication from "./models/userApplication.model.js";
+import Account from "./models/account.model.js";
 
 // ── Associations ──────────────────────────────────────────────────────────────
 
@@ -23,6 +24,14 @@ Signup.associate(originalModels);
 UserApplication.belongsTo(VolunteerOpportunity, {
   foreignKey: "volunteer_id",
   as: "opportunity",
+});
+Account.hasMany(UserApplication, {
+  foreignKey: "account_id",
+  as: "applications",
+});
+UserApplication.belongsTo(Account, {
+  foreignKey: "account_id",
+  as: "account",
 });
 VolunteerOpportunity.hasMany(UserApplication, {
   foreignKey: "volunteer_id",
@@ -93,6 +102,16 @@ async function seedVolunteerOpportunities() {
   }
 }
 
+async function ensureAccountIdColumn() {
+  const [columns] = await sequelize.query("SHOW COLUMNS FROM users LIKE 'account_id'");
+  if (columns.length > 0) return;
+
+  await sequelize.query(
+    "ALTER TABLE users ADD COLUMN account_id INT NULL, ADD INDEX idx_users_account_id (account_id), ADD CONSTRAINT fk_users_account_id FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL ON UPDATE CASCADE"
+  );
+  console.log("✅ Added account ownership to existing applications.");
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 try {
@@ -102,6 +121,7 @@ try {
   // Synchronize missing tables without repeatedly rewriting existing constraints.
   await sequelize.sync();
   console.log("✅ Database tables synchronized.");
+  await ensureAccountIdColumn();
 
   // Seed starter data
   await seedInitialEvents();

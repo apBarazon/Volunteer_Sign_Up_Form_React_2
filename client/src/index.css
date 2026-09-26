@@ -63,6 +63,16 @@ body {
   font-weight: 600;
   font-size: 0.9rem;
 }
+.nav-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--secondary-text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
 .theme-toggle {
   border: 1px solid var(--border);
   background: var(--bg);
@@ -75,6 +85,11 @@ body {
 
 .page { max-width: 700px; margin: 2.5rem auto; padding: 0 1.5rem; }
 .page-wide { max-width: 900px; }
+.auth-page { max-width: 460px; }
+.auth-card { padding: 2rem; }
+.auth-switch { text-align: center; color: var(--subtitle); font-size: 0.85rem; }
+.auth-switch a { color: var(--primary); font-weight: 600; }
+.loading-message { text-align: center; }
 
 .page-title { text-align: center; font-size: 2rem; margin-bottom: 0.4rem; }
 .page-subtitle { text-align: center; color: var(--subtitle); margin-bottom: 1.5rem; }

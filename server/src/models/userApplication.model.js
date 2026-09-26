@@ -20,6 +20,11 @@ UserApplication.init(
       allowNull: false,
       field: "volunteer_id",
     },
+    accountId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "account_id",
+    },
     // Step 1: Personal Information
     firstName: {
       type: DataTypes.STRING(100),

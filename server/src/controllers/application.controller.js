@@ -7,7 +7,7 @@ import VolunteerOpportunity from "../models/volunteerOpportunity.model.js";
  * Returns every submitted application joined with its opportunity.
  * Powers the "My Applications" page.
  */
-export async function getApplications(_req, res, next) {
+export async function getApplications(req, res, next) {
   try {
     const applications = await UserApplication.findAll({
       include: [
@@ -17,6 +17,7 @@ export async function getApplications(_req, res, next) {
           attributes: ["id", "name", "type"],
         },
       ],
+      where: { accountId: req.account.id },
       order: [["submitted_at", "DESC"]],
     });
 
@@ -84,6 +85,7 @@ export async function submitApplication(req, res, next) {
     // 3. Insert the application
     const newApp = await UserApplication.create(
       {
+        accountId: req.account.id,
         volunteerId,
         firstName: firstName.trim(),
         lastName: lastName.trim(),

@@ -5,6 +5,7 @@ import eventRoutes from "./routes/event.routes.js";
 import volunteerRoutes from "./routes/volunteer.routes.js";
 import opportunityRoutes from "./routes/opportunity.routes.js";
 import applicationRoutes from "./routes/application.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
@@ -15,6 +16,8 @@ app.use(express.json());
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", message: "Volunteer Sign-Up API is running" });
 });
+
+app.use("/api/auth", authRoutes);
 
 // Original API Routes (events table + volunteers/signups tables)
 app.use("/api/events", eventRoutes);
