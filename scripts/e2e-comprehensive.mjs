@@ -11,6 +11,7 @@ const baseUrl = process.env.E2E_BASE_URL || "http://localhost:5173";
 const apiUrl = process.env.E2E_API_URL || "http://localhost:3000";
 const startedProcesses = [];
 const tokenKey = "volunteer_portal_token";
+let adminFixtureName = "";
 
 function readLocalEnvValue(name) {
   try {
@@ -508,6 +509,7 @@ async function testAdmin(page, userEmail, userPassword) {
   await expectText(page, "Volunteer opportunities");
 
   const uniqueName = `E2E Opportunity ${Date.now()}`;
+  adminFixtureName = uniqueName;
   const form = page.locator(".admin-form");
   await form.locator("input").nth(0).fill(uniqueName);
   await form.locator("input").nth(1).fill("Outreach");
@@ -656,6 +658,29 @@ async function run() {
         console.log("Cleaned up the comprehensive E2E account and application.");
       } catch (error) {
         console.error(`WARNING: E2E cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (adminFixtureName && !page.isClosed() && adminEmail && adminPassword) {
+      try {
+        const loginResponse = await page.request.post(`${apiUrl}/api/auth/login`, {
+          data: { email: adminEmail, password: adminPassword },
+        });
+        if (!loginResponse.ok()) throw new Error(`Admin cleanup login returned HTTP ${loginResponse.status()}.`);
+        const { token } = await loginResponse.json();
+        const opportunitiesResponse = await page.request.get(`${apiUrl}/api/admin/opportunities`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!opportunitiesResponse.ok()) throw new Error(`Admin cleanup list returned HTTP ${opportunitiesResponse.status()}.`);
+        const opportunity = (await opportunitiesResponse.json()).find((item) => item.name === adminFixtureName);
+        if (opportunity) {
+          const deleteResponse = await page.request.delete(`${apiUrl}/api/admin/opportunities/${opportunity.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!deleteResponse.ok()) throw new Error(`Admin opportunity cleanup returned HTTP ${deleteResponse.status()}.`);
+          console.log("Cleaned up the comprehensive E2E opportunity fixture.");
+        }
+      } catch (error) {
+        console.error(`WARNING: E2E opportunity cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     await waitBeforeClosing();

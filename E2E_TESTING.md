@@ -16,7 +16,7 @@ To watch the full suite interact with the app in a visible, slowed-down browser:
 npm run test:e2e:headed
 ```
 
-The test cleans up its temporary accounts, applications, and opportunities before waiting. Press Enter in the terminal when you are finished watching to close the browser.
+The test cleans up its temporary accounts, applications, and opportunities before waiting. The comprehensive runner also attempts a final admin-opportunity cleanup if an assertion fails before the normal delete step. Press Enter in the terminal when you are finished watching to close the browser.
 ## Smoke test
 
 This test acts like a user in a real browser. It clears cookies and browser storage, checks the API and opportunity list, verifies form validation, creates a unique account, completes the four-step application, submits it, reloads the page, and confirms the saved application is returned from the local MariaDB-backed API.

@@ -70,7 +70,7 @@ CREATE TABLE `events` (
 
 LOCK TABLES `events` WRITE;
 /*!40000 ALTER TABLE `events` DISABLE KEYS */;
-INSERT INTO `events` VALUES (1,'Community Beach & Park Cleanup','Help clean up trash, plastic, and debris along the shoreline.','2026-10-15','Baywalk Seaside Promenade',25,'2026-09-27 07:09:49'),(2,'Community Food Pantry Distribution','Sorting, packing, and handing out grocery bags to local families in need.','2026-10-22','Central Community Hall',15,'2026-09-27 07:09:49'),(3,'Senior Center Digital Literacy Workshop','Assist elderly community members with smartphones, video calling, and computers.','2026-10-29','Public Library Tech Lab',10,'2026-09-27 07:09:49'),(4,'Community Beach & Park Cleanup','Help clean up trash, plastic, and debris along the shoreline.','2026-10-15','Baywalk Seaside Promenade',25,'2026-09-27 07:09:49'),(5,'Community Food Pantry Distribution','Sorting, packing, and handing out grocery bags to local families in need.','2026-10-22','Central Community Hall',15,'2026-09-27 07:09:49'),(6,'Senior Center Digital Literacy Workshop','Assist elderly community members with smartphones, video calling, and computers.','2026-10-29','Public Library Tech Lab',10,'2026-09-27 07:09:49');
+INSERT INTO `events` VALUES (1,'Community Beach & Park Cleanup','Help clean up trash, plastic, and debris along the shoreline.','2026-10-15','Baywalk Seaside Promenade',25,'2026-09-27 07:09:49'),(2,'Community Food Pantry Distribution','Sorting, packing, and handing out grocery bags to local families in need.','2026-10-22','Central Community Hall',15,'2026-09-27 07:09:49'),(3,'Senior Center Digital Literacy Workshop','Assist elderly community members with smartphones, video calling, and computers.','2026-10-29','Public Library Tech Lab',10,'2026-09-27 07:09:49');
 /*!40000 ALTER TABLE `events` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -189,4 +189,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-27 17:00:33
+-- Dump completed on 2026-09-28  0:01:25
