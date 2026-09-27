@@ -1,4 +1,5 @@
 import sequelize from "../config/db.js";
+import { Op } from "sequelize";
 import UserApplication from "../models/userApplication.model.js";
 import VolunteerOpportunity from "../models/volunteerOpportunity.model.js";
 
@@ -70,13 +71,6 @@ export async function submitApplication(req, res, next) {
 
   const t = await sequelize.transaction();
   try {
-    // 1. Verify the opportunity exists
-    const opportunity = await VolunteerOpportunity.findByPk(volunteerId, { transaction: t });
-    if (!opportunity) {
-      await t.rollback();
-      return res.status(404).json({ message: "Selected opportunity does not exist." });
-    }
-
     const existingApplication = await UserApplication.findOne({
       where: { accountId: req.account.id, volunteerId },
       transaction: t,
@@ -86,13 +80,27 @@ export async function submitApplication(req, res, next) {
       return res.status(409).json({ message: "You've already applied to this opportunity." });
     }
 
-    // 2. Check spots
-    if (opportunity.spotsLeft <= 0) {
+    const [updatedOpportunityCount] = await VolunteerOpportunity.update(
+      { spotsLeft: sequelize.literal("spots_left - 1") },
+      {
+        where: {
+          id: volunteerId,
+          spotsLeft: { [Op.gt]: 0 },
+        },
+        transaction: t,
+      },
+    );
+
+    if (updatedOpportunityCount === 0) {
+      const opportunity = await VolunteerOpportunity.findByPk(volunteerId, { transaction: t });
       await t.rollback();
-      return res.status(400).json({ message: "Sorry, this opportunity is already full." });
+      return res.status(opportunity ? 400 : 404).json({
+        message: opportunity
+          ? "Sorry, this opportunity is already full."
+          : "Selected opportunity does not exist.",
+      });
     }
 
-    // 3. Insert the application
     const newApp = await UserApplication.create(
       {
         accountId: req.account.id,
@@ -111,9 +119,6 @@ export async function submitApplication(req, res, next) {
       },
       { transaction: t }
     );
-
-    // 4. Decrement spots_left, never below zero
-    await opportunity.decrement("spotsLeft", { by: 1, transaction: t });
 
     await t.commit();
     res.status(201).json({ id: newApp.id, message: "Application submitted successfully." });

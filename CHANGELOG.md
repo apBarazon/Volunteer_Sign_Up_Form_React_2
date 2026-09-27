@@ -23,11 +23,11 @@ This document tracks the progress, architectural decisions, and current status o
 | **Documentation** | [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) | Complete | Plain-English beginner guide explaining every file & concept |
 | **Git Config** | [`.gitignore`](./.gitignore) | Complete | Root ignore rules (prevents tracking `node_modules` and `.env`) |
 | **Backend Config** | [`server/.env.example`](./server/.env.example) | Complete | Template for teammates to configure their local MariaDB |
-| **Backend Config** | [`server/package.json`](./server/package.json) | Complete | Express, Sequelize, MySQL2, Zod, CORS, Dotenv, bcryptjs, and jsonwebtoken |
+| **Backend Config** | [`server/package.json`](./server/package.json) | Complete | Express, Sequelize, MySQL2, Zod, CORS, Helmet, Dotenv, bcryptjs, and jsonwebtoken |
 | **Backend Config** | [`server/.env`](./server/.env) | Complete | MariaDB connection variables and local JWT signing secret |
 | **Backend Config** | [`server/src/config/db.js`](./server/src/config/db.js) | Complete | Sequelize MariaDB connection setup and automatic database creation |
 | **Backend Server** | [`server/src/server.js`](./server/src/server.js) | Complete | Associations, safe table sync, account ownership upgrade, seeding, LAN listener |
-| **Backend Server** | [`server/src/app.js`](./server/src/app.js) | Complete | Express app with public opportunity routes, auth routes, protected application routes, and error handler |
+| **Backend Server** | [`server/src/app.js`](./server/src/app.js) | Complete | Express app with restricted CORS, Helmet headers, public opportunity routes, auth routes, protected application routes, and error handler |
 | **Authentication** | [`server/src/models/account.model.js`](./server/src/models/account.model.js) | Complete | Separate login account table with unique email and password hash |
 | **Authentication** | [`server/src/controllers/auth.controller.js`](./server/src/controllers/auth.controller.js) | Complete | Registration, login, password hashing, JWT creation, and current-account response |
 | **Authentication** | [`server/src/middleware/requireAuth.js`](./server/src/middleware/requireAuth.js) | Complete | Verifies Bearer JWTs and attaches the account to the request |
@@ -77,6 +77,8 @@ This document tracks the progress, architectural decisions, and current status o
 9. [Checkpoint 9: Admin Panel and Role-Protected CRUD](#checkpoint-9-admin-panel-and-role-protected-crud)
 10. [Checkpoint 10: Scalable Admin Application Management](#checkpoint-10-scalable-admin-application-management)
 11. [Checkpoint 11: Application Experience and Watchable E2E Testing](#checkpoint-11-application-experience-and-watchable-e2e-testing)
+12. [Checkpoint 12: Security Regression E2E Coverage](#checkpoint-12-security-regression-e2e-coverage)
+13. [Checkpoint 13: Smart Feature-Matrix E2E Coverage](#checkpoint-13-smart-feature-matrix-e2e-coverage)
 
 ### [Checkpoint 1] Initial Backend Scaffolding & Data Layer
 **Timestamp**: `2026-09-22 22:00:00 (GMT+8)`  
@@ -303,3 +305,30 @@ This document tracks the progress, architectural decisions, and current status o
 - `npm run test:e2e:full` passes with comprehensive headless coverage.
 - `npm run test:e2e:headed` runs the same flow in visible, slowed-down Chromium and pauses after cleanup.
 - Client production build and diagnostics pass.
+
+### [Checkpoint 12] Security Regression E2E Coverage
+**Timestamp**: `2026-09-27`
+**Contributors**: User, GitHub Copilot
+
+#### What Was Accomplished:
+1. Expanded comprehensive Playwright coverage to verify every admin opportunity and application endpoint rejects a regular user's JWT with `403 Forbidden`.
+2. Added browser coverage for logout token removal and invalid or expired JWT redirection with the session-expired message.
+3. Added concurrent two-account submission coverage against a temporary one-spot opportunity, requiring exactly one success and one full response.
+4. Added direct API checks for the configured CORS origin, rejection of an unconfigured origin, and Helmet's baseline security headers.
+5. Updated `E2E_TESTING.md` and `CODEBASE_EXPLAINER.md` with the security setup, behavior, and cleanup expectations.
+
+#### Verification:
+- `node --check scripts/e2e-comprehensive.mjs` passes.
+- The full suite requires MariaDB, both dev servers, and configured admin credentials; run `npm run test:e2e:full` for the complete regression check.
+
+### [Checkpoint 13] Smart Feature-Matrix E2E Coverage
+**Timestamp**: `2026-09-27`
+**Contributors**: User, GitHub Copilot
+
+#### What Was Accomplished:
+1. Added direct assertions for every availability slot, every skill checkbox, and both post-submission navigation actions.
+2. Added admin UI coverage for refresh, cancel edit, application expansion/collapse, approval, rejection, all status filters, and both pagination directions.
+3. Added deterministic temporary-account cleanup and session restoration so the full suite remains reliable with existing database records.
+
+#### Verification:
+- `npm run test:e2e:full` passes with the expanded feature matrix and cleanup workflow.

@@ -31,7 +31,7 @@ Think of your web application like a **restaurant**:
 
 The home page is public, so visitors can browse and search opportunities without an account. Clicking **Apply Now** checks an authenticated user's existing applications for that opportunity before opening `/signup`. A duplicate shows a message and a My Applications link instead of opening the form. Full opportunities disable the button. The route guard sends logged-out visitors to `/login`, preserving `/signup` as the return path. After registration or login, the user returns to the application form.
 
-Submitting an application requires a valid JWT. The backend stores that account's ID on the application row, checks the account/opportunity pair for duplicates, and decrements capacity in a transaction. Successful submission shows a distinct confirmation screen before the user chooses My Applications or more opportunities. The protected `/api/applications` query filters by that account ID, so **My Applications** shows only the current user's submissions and displays Pending, Confirmed, or Cancelled status tags.
+Submitting an application requires a valid JWT. The backend stores that account's ID on the application row, checks the account/opportunity pair for duplicates, and reserves capacity with an atomic `spots_left > 0` update inside a transaction, so simultaneous requests cannot claim the last spot twice. Successful submission shows a distinct confirmation screen before the user chooses My Applications or more opportunities. The protected `/api/applications` query filters by that account ID, so **My Applications** shows only the current user's submissions and displays Pending, Confirmed, or Cancelled status tags.
 
 ---
 
@@ -60,7 +60,7 @@ Submitting an application requires a valid JWT. The backend stores that account'
   * **What it does**: Starts missing development servers, clears browser state, tests validation, creates an account, submits an application, reloads the page, verifies that MariaDB-backed data appears in My Applications, then removes the temporary account and restores opportunity capacity.
 * **[`scripts/e2e-comprehensive.mjs`](./scripts/e2e-comprehensive.mjs)**
   * **What it is**: The complete Playwright browser workflow.
-  * **What it does**: Covers public browsing, authentication and guards, password visibility, duplicate prevention, wizard validation/navigation, loading and error states, persistence, admin CRUD, status actions, deletion protection, and cleanup.
+  * **What it does**: Covers public browsing, authentication and guards, password visibility, logout token removal, expired-JWT recovery, duplicate prevention, wizard validation/navigation, loading and error states, persistence, concurrent capacity enforcement, admin CRUD and every admin authorization method, status actions, deletion protection, CORS, Helmet, and cleanup.
 * **[`scripts/e2e-headed.mjs`](./scripts/e2e-headed.mjs)**
   * **What it is**: The watchable E2E command wrapper.
   * **What it does**: Runs the comprehensive suite in visible Chromium with slow actions and waits for Enter before closing.
@@ -68,7 +68,7 @@ Submitting an application requires a valid JWT. The backend stores that account'
   * **What it is**: A local MariaDB export and import utility.
   * **What it does**: Reads the database settings from `server/.env`, uses the XAMPP MariaDB tools, exports data to `database/volunteer_app.sql`, and imports that file on another laptop.
 
-To enable administration, set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `server/.env`, then restart the backend. The startup process creates the account if it is missing or promotes the matching account to the `admin` role.
+To enable administration, set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `server/.env`, then restart the backend. The startup process creates the account if it is missing or promotes the matching account to the `admin` role. Set `FRONTEND_ORIGINS` to the comma-separated frontend origins that may call the API.
 
 The Admin Panel uses one tabbed dashboard: Opportunities contains CRUD controls, while Applications provides Pending/Confirmed/Cancelled filters, applicant search, 15-item pagination, expandable details, Approve/Reject/Delete actions, inline status updates, and deletion.
 
@@ -85,7 +85,8 @@ This is a **Node.js + Express** server. It runs on `http://localhost:3000`.
     * `mysql2`: The low-level driver that allows Node.js to speak to MariaDB/MySQL.
     * `sequelize`: An "ORM" (Object Relational Mapper) that lets you talk to your database using JavaScript objects instead of raw SQL queries.
     * `zod`: The validation library that makes sure emails look like emails and names aren't empty.
-    * `cors`: Allows your frontend (`localhost:5173`) to talk to your backend (`localhost:3000`) without the browser blocking it for security reasons.
+    * `cors`: Allows only the configured frontend origins to talk to the backend.
+    * `helmet`: Adds Express security headers such as `X-Content-Type-Options`.
     * `dotenv`: Loads secret settings from your `.env` file into code.
     * `bcryptjs`: Hashes passwords before they are stored.
     * `jsonwebtoken`: Creates and verifies login sessions represented by JWTs.
@@ -97,7 +98,7 @@ This is a **Node.js + Express** server. It runs on `http://localhost:3000`.
 * **[`server/src/server.js`](./server/src/server.js)**
   * **The ignition key**: The actual starting point of the backend. It checks the JWT configuration, tests MariaDB, links the account/application/opportunity models, creates missing tables, adds the `account_id` column to an existing applications table when needed, seeds starter data, and starts port 3000 on all local interfaces.
 * **[`server/src/app.js`](./server/src/app.js)**
-  * **The Express setup**: Configures CORS and `express.json()`, mounts public opportunity routes, mounts authentication routes, protects application routes, and installs the global error handler.
+  * **The Express setup**: Restricts CORS to `FRONTEND_ORIGINS`, adds Helmet security headers and `express.json()`, mounts public opportunity routes, mounts authentication routes, protects application routes, and installs the global error handler.
 
 #### The Data Models (`server/src/models/`)
 *These define what your MariaDB tables look like, translated into JavaScript:*
@@ -124,7 +125,7 @@ This is a **Node.js + Express** server. It runs on `http://localhost:3000`.
 * **[`server/src/middleware/errorHandler.js`](./server/src/middleware/errorHandler.js)**
   * **The safety net**: If anything crashes unexpectedly (e.g. database down, server glitch), this catches the error and sends a clean JSON error response instead of crashing the whole server.
 * **[`server/src/middleware/requireAuth.js`](./server/src/middleware/requireAuth.js)**
-  * **The security checkpoint**: Reads `Authorization: Bearer <token>`, verifies the JWT with `JWT_SECRET`, loads the account, and places it on `req.account`. Requests without a valid token receive `401 Unauthorized`.
+  * **The security checkpoint**: Reads `Authorization: Bearer <token>`, verifies the JWT with `JWT_SECRET`, loads the account, and places it on `req.account`. Requests without a valid token receive `401 Unauthorized`; `requireAdmin` additionally requires `req.account.role === "admin"`.
 * **[`server/src/schemas/auth.schema.js`](./server/src/schemas/auth.schema.js)**
   * Validates authentication credentials: a properly formatted email and a password between 8 and 128 characters.
 * **[`server/src/schemas/application.schema.js`](./server/src/schemas/application.schema.js)**
@@ -148,6 +149,8 @@ This is a **Node.js + Express** server. It runs on `http://localhost:3000`.
   * Defines `POST /api/auth/register`, `POST /api/auth/login`, and protected `GET /api/auth/me`.
 * **[`server/src/routes/application.routes.js`](./server/src/routes/application.routes.js)**
   * Requires authentication for both reading and submitting applications, then applies Zod validation to submissions.
+* **[`server/src/routes/admin.routes.js`](./server/src/routes/admin.routes.js)**
+  * Applies `requireAuth` and `requireAdmin` to every admin opportunity and application endpoint, including status changes and deletes.
 
 ---
 
@@ -182,7 +185,7 @@ This is a **React + TypeScript + Vite** app. It runs on `http://localhost:5173`.
 * **[`client/src/components/PasswordInput.tsx`](./client/src/components/PasswordInput.tsx)**
   * Reusable login/registration password field with an accessible eye icon that toggles masked and visible text.
 * **[`client/src/api/api.ts`](./client/src/api/api.ts)**
-  * Centralizes fetch calls and attaches `Authorization: Bearer <jwt>` to auth-protected requests.
+  * Centralizes fetch calls and attaches `Authorization: Bearer <jwt>` to auth-protected requests. Authenticated `401` responses clear the token and redirect to login with a session-expired message.
 * **[`client/src/index.css`](./client/src/index.css)**
   * The shared Bayanihan design system controlling warm light/dark color tokens, Fraunces and Public Sans typography, woven texture accents, responsive layouts, auth forms, admin surfaces, and buttons.
 
@@ -196,8 +199,8 @@ When an authenticated volunteer submits the application form:
 2. **Frontend Validation**: The client Zod schema checks names, email, phone, age, availability, experience, skills, and terms.
 3. **Authenticated Request**: `client/src/api/api.ts` sends the application and `Authorization: Bearer <jwt>` to `POST /api/applications`.
 4. **Backend Security**: `requireAuth` verifies the JWT and loads `req.account`; `validate(applicationSchema)` checks the request body.
-5. **Duplicate and Capacity Checks**: The controller rejects an existing `{ account_id, volunteer_id }` pair and refuses full opportunities before writing.
-6. **Ownership and Capacity**: The controller writes `account_id = req.account.id` and decrements the opportunity's remaining spots in a transaction.
+5. **Duplicate and Capacity Checks**: The controller rejects an existing `{ account_id, volunteer_id }` pair and atomically reserves a row where `spots_left > 0`.
+6. **Ownership and Capacity**: The controller writes `account_id = req.account.id` in the same transaction as the conditional decrement; a losing concurrent request is rolled back.
 7. **Confirmation**: The frontend shows a success screen with the submitted role before offering My Applications or more opportunities.
 8. **My Applications**: Later, `GET /api/applications` filters by that same account ID, so another account cannot see the record; each record includes its current status tag.
 

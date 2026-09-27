@@ -10,7 +10,19 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function parseError(res: Response, fallback: string) {
+function redirectToLoginAfterUnauthorized() {
+  localStorage.removeItem(TOKEN_KEY);
+  const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const loginUrl = new URL("/login", window.location.origin);
+  loginUrl.searchParams.set("message", "Your session expired, please log in again.");
+  loginUrl.searchParams.set("returnTo", returnTo);
+  window.location.assign(loginUrl.toString());
+}
+
+async function parseError(res: Response, fallback: string, authenticated = false) {
+  if (res.status === 401 && authenticated) {
+    redirectToLoginAfterUnauthorized();
+  }
   const body = await res.json().catch(() => ({}));
   throw new Error(body.message || body.error || fallback);
 }
@@ -47,7 +59,7 @@ export async function loginAccount(email: string, password: string): Promise<Aut
 
 export async function getCurrentAccount(): Promise<AuthAccount> {
   const res = await fetch(`${BASE_URL}/auth/me`, { headers: authHeaders() });
-  if (!res.ok) await parseError(res, "Your session has expired.");
+  if (!res.ok) await parseError(res, "Your session has expired.", true);
   const body = await res.json();
   return body.account;
 }
@@ -80,8 +92,7 @@ export async function submitApplication(
     body: JSON.stringify({ volunteerId, ...data }),
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || "Failed to submit application.");
+    await parseError(res, "Failed to submit application.", true);
   }
   return res.json();
 }
@@ -108,7 +119,7 @@ export type ApplicationRecord = {
 
 export async function fetchApplications(): Promise<ApplicationRecord[]> {
   const res = await fetch(`${BASE_URL}/applications`, { headers: authHeaders() });
-  if (!res.ok) await parseError(res, "Failed to load applications.");
+  if (!res.ok) await parseError(res, "Failed to load applications.", true);
   return res.json();
 }
 
@@ -120,7 +131,7 @@ export type AdminApplication = ApplicationRecord & {
 
 export async function fetchAdminOpportunities(): Promise<AdminOpportunity[]> {
   const res = await fetch(`${BASE_URL}/admin/opportunities`, { headers: authHeaders() });
-  if (!res.ok) await parseError(res, "Failed to load admin opportunities.");
+  if (!res.ok) await parseError(res, "Failed to load admin opportunities.", true);
   return res.json();
 }
 
@@ -130,7 +141,7 @@ export async function createAdminOpportunity(data: Omit<AdminOpportunity, "id">)
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(data),
   });
-  if (!res.ok) await parseError(res, "Failed to create opportunity.");
+  if (!res.ok) await parseError(res, "Failed to create opportunity.", true);
   return res.json() as Promise<AdminOpportunity>;
 }
 
@@ -140,7 +151,7 @@ export async function updateAdminOpportunity(id: number, data: Partial<Omit<Admi
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(data),
   });
-  if (!res.ok) await parseError(res, "Failed to update opportunity.");
+  if (!res.ok) await parseError(res, "Failed to update opportunity.", true);
   return res.json() as Promise<AdminOpportunity>;
 }
 
@@ -149,12 +160,12 @@ export async function deleteAdminOpportunity(id: number) {
     method: "DELETE",
     headers: authHeaders(),
   });
-  if (!res.ok) await parseError(res, "Failed to delete opportunity.");
+  if (!res.ok) await parseError(res, "Failed to delete opportunity.", true);
 }
 
 export async function fetchAdminApplications(): Promise<AdminApplication[]> {
   const res = await fetch(`${BASE_URL}/admin/applications`, { headers: authHeaders() });
-  if (!res.ok) await parseError(res, "Failed to load all applications.");
+  if (!res.ok) await parseError(res, "Failed to load all applications.", true);
   return res.json();
 }
 
@@ -163,7 +174,7 @@ export async function deleteAdminApplication(id: number) {
     method: "DELETE",
     headers: authHeaders(),
   });
-  if (!res.ok) await parseError(res, "Failed to delete application.");
+  if (!res.ok) await parseError(res, "Failed to delete application.", true);
 }
 
 export async function updateAdminApplicationStatus(
@@ -175,6 +186,6 @@ export async function updateAdminApplicationStatus(
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) await parseError(res, "Failed to update application status.");
+  if (!res.ok) await parseError(res, "Failed to update application status.", true);
   return res.json() as Promise<{ id: number; status: AdminApplication["status"] }>;
 }

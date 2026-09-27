@@ -1,12 +1,14 @@
 # End-to-end testing
 
+The project has a short smoke test and a comprehensive security regression suite. Both use Playwright against the real Vite, Express, and MariaDB services.
+
 Run the full browser coverage suite with:
 
 ```powershell
 npm run test:e2e:full
 ```
 
-The full suite reads the local admin account from `server/.env` (or accepts `E2E_ADMIN_EMAIL` and `E2E_ADMIN_PASSWORD` overrides). It covers public opportunity loading/search/category filters, theme switching, opportunity lookup errors, registration and login validation including duplicate accounts, password visibility, protected-route redirects, logout, regular-user admin denial, empty applications, all application wizard validation gates, back/clear navigation, application persistence, admin opportunity CRUD and deletion protection, application details/search/status/delete, and API authorization responses.
+The full suite reads the local admin account from `server/.env` (or accepts `E2E_ADMIN_EMAIL` and `E2E_ADMIN_PASSWORD` overrides). It covers public opportunity loading/search/category filters, theme switching, every opportunity Apply state, opportunity lookup errors, registration and login validation including duplicate accounts, password visibility, protected-route redirects, logout token removal, invalid-JWT redirect messaging, all admin endpoint authorization checks, empty applications, every application wizard field/control and validation gate, every availability slot and skill toggle, back/clear navigation, both success-screen navigation buttons, application persistence, concurrent last-spot submissions, admin opportunity CRUD including cancel-edit and refresh, application expansion/search/status filters/status changes/delete, pagination in both directions, CORS origin filtering, Helmet headers, and cleanup.
 
 To watch the full suite interact with the app in a visible, slowed-down browser:
 
@@ -14,8 +16,8 @@ To watch the full suite interact with the app in a visible, slowed-down browser:
 npm run test:e2e:headed
 ```
 
-The test cleans up its temporary account and application before waiting. Press Enter in the terminal when you are finished watching to close the browser.
-# End-to-end smoke test
+The test cleans up its temporary accounts, applications, and opportunities before waiting. Press Enter in the terminal when you are finished watching to close the browser.
+## Smoke test
 
 This test acts like a user in a real browser. It clears cookies and browser storage, checks the API and opportunity list, verifies form validation, creates a unique account, completes the four-step application, submits it, reloads the page, and confirms the saved application is returned from the local MariaDB-backed API.
 
@@ -36,7 +38,7 @@ Create the local backend environment file on each computer after pulling the rep
 Copy-Item server/.env.example server/.env
 ```
 
-Edit `server/.env` with that computer's MariaDB settings and a unique local `JWT_SECRET` and `ADMIN_PASSWORD`. The real `server/.env` is intentionally ignored by Git; commit only `server/.env.example` so credentials are not shared publicly.
+Edit `server/.env` with that computer's MariaDB settings, a unique local `JWT_SECRET`, `ADMIN_PASSWORD`, and `FRONTEND_ORIGINS`. Use `http://localhost:5173` for local development; comma-separate any deployed frontend origins. The real `server/.env` is intentionally ignored by Git; commit only `server/.env.example` so credentials are not shared publicly.
 
 ## Run repeatedly
 
@@ -45,6 +47,8 @@ npm run test:e2e
 ```
 
 A successful run ends with `PASS`, followed by a cleanup message. Each run creates a unique temporary account and application, verifies the saved record, then deletes the test data and restores the opportunity capacity.
+
+The comprehensive suite requires the configured admin account because it creates a temporary one-spot opportunity for the concurrent-submission test and exercises admin-only routes directly with a regular user's JWT.
 
 ## Sync the local database between laptops
 

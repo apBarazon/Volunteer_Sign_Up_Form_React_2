@@ -101,6 +101,8 @@ async function logout(page) {
   await page.getByRole("button", { name: "Log out" }).click();
   await page.getByRole("link", { name: "Log in" }).waitFor();
   await page.getByRole("link", { name: "My Applications", exact: true }).waitFor({ state: "detached" });
+  const storedToken = await page.evaluate((key) => localStorage.getItem(key), tokenKey);
+  if (storedToken) throw new Error("Logout left the JWT in localStorage.");
 }
 
 async function fillValidStepOne(page, email) {
@@ -214,6 +216,128 @@ async function testAuthAndGuards(page, email, password) {
 
 }
 
+async function testSecurityHardening(page, userEmail, userPassword) {
+  const userToken = await page.evaluate((key) => localStorage.getItem(key), tokenKey);
+  if (!userToken) throw new Error("Security tests could not find the regular user's JWT.");
+
+  const adminRequests = [
+    { method: "GET", path: "/api/admin/opportunities" },
+    { method: "POST", path: "/api/admin/opportunities", data: { name: "Denied", type: "Outreach", description: "Denied", spotsLeft: 1 } },
+    { method: "PATCH", path: "/api/admin/opportunities/999999999", data: { name: "Denied" } },
+    { method: "DELETE", path: "/api/admin/opportunities/999999999" },
+    { method: "GET", path: "/api/admin/applications" },
+    { method: "PATCH", path: "/api/admin/applications/999999999/status", data: { status: "approved" } },
+    { method: "DELETE", path: "/api/admin/applications/999999999" },
+  ];
+
+  for (const request of adminRequests) {
+    const response = await page.request.fetch(`${apiUrl}${request.path}`, {
+      method: request.method,
+      headers: {
+        Authorization: `Bearer ${userToken}`,
+        ...(request.data ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(request.data ? { data: request.data } : {}),
+    });
+    if (response.status() !== 403) {
+      throw new Error(`Regular user received HTTP ${response.status()} for ${request.method} ${request.path}.`);
+    }
+  }
+
+  const allowedOriginResponse = await page.request.get(`${apiUrl}/api/health`, {
+    headers: { Origin: "http://localhost:5173" },
+  });
+  if (allowedOriginResponse.headers()["access-control-allow-origin"] !== "http://localhost:5173") {
+    throw new Error("Configured frontend origin was not allowed by CORS.");
+  }
+  const deniedOriginResponse = await page.request.get(`${apiUrl}/api/health`, {
+    headers: { Origin: "http://malicious.example" },
+  });
+  if (deniedOriginResponse.headers()["access-control-allow-origin"]) {
+    throw new Error("Unconfigured origin was allowed by CORS.");
+  }
+  if (allowedOriginResponse.headers()["x-content-type-options"] !== "nosniff") {
+    throw new Error("Helmet security headers were not applied.");
+  }
+
+  await page.evaluate((key) => localStorage.setItem(key, "expired-or-invalid-token"), tokenKey);
+  await page.goto(`${baseUrl}/my-applications`, { waitUntil: "networkidle" });
+  await expectText(page, "Your session expired, please log in again.");
+  await expectUrl(page, /\/login\?message=.*returnTo=.*my-applications/);
+  const clearedToken = await page.evaluate((key) => localStorage.getItem(key), tokenKey);
+  if (clearedToken) throw new Error("Expired JWT handling did not clear localStorage.");
+  await login(page, userEmail, userPassword);
+
+  if (!adminEmail || !adminPassword) throw new Error("Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to run capacity E2E coverage.");
+  const adminLoginResponse = await page.request.post(`${apiUrl}/api/auth/login`, {
+    data: { email: adminEmail, password: adminPassword },
+  });
+  if (!adminLoginResponse.ok()) throw new Error("Capacity test could not log in as the admin.");
+  const { token: adminToken } = await adminLoginResponse.json();
+  let capacityOpportunityId;
+  const capacityAccounts = [];
+
+  try {
+    const opportunityResponse = await page.request.post(`${apiUrl}/api/admin/opportunities`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      data: {
+        name: `E2E Last Spot ${Date.now()}`,
+        type: "Outreach",
+        description: "Created by concurrent capacity coverage.",
+        spotsLeft: 1,
+      },
+    });
+    if (!opportunityResponse.ok()) throw new Error("Capacity test opportunity could not be created.");
+    capacityOpportunityId = (await opportunityResponse.json()).id;
+
+    for (let index = 0; index < 2; index += 1) {
+      const email = `e2e-capacity-${Date.now()}-${index}@example.com`;
+      const response = await page.request.post(`${apiUrl}/api/auth/register`, {
+        data: { email, password: userPassword },
+      });
+      if (!response.ok()) throw new Error(`Capacity test account ${index + 1} could not be created.`);
+      const body = await response.json();
+      capacityAccounts.push({ email, token: body.token });
+    }
+
+    const applicationData = (email) => ({
+      volunteerId: capacityOpportunityId,
+      firstName: "Capacity",
+      lastName: "Tester",
+      email,
+      phone: "55512345678",
+      age: "25",
+      city: "Springfield",
+      availability: ["Mon-Morning"],
+      experience: "Concurrent capacity test.",
+      skills: [],
+      heardAbout: "Other",
+      agreeTerms: true,
+    });
+    const submissions = await Promise.all(capacityAccounts.map((account) => page.request.post(`${apiUrl}/api/applications`, {
+      headers: { Authorization: `Bearer ${account.token}` },
+      data: applicationData(account.email),
+    })));
+    const statusCodes = submissions.map((response) => response.status()).sort((left, right) => left - right);
+    if (statusCodes.join(",") !== "201,400") {
+      throw new Error(`Concurrent last-spot submissions returned ${statusCodes.join(",")} instead of one 201 and one 400.`);
+    }
+  } finally {
+    for (const account of capacityAccounts) {
+      const response = await page.request.delete(`${apiUrl}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${account.token}` },
+      });
+      if (!response.ok()) console.error(`WARNING: capacity account cleanup returned HTTP ${response.status()}.`);
+    }
+    if (capacityOpportunityId) {
+      const response = await page.request.delete(`${apiUrl}/api/admin/opportunities/${capacityOpportunityId}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      if (!response.ok()) console.error(`WARNING: capacity opportunity cleanup returned HTTP ${response.status()}.`);
+    }
+  }
+}
+
 async function testRegistrationAndWizard(page, email, password) {
   await clearSession(page);
   await page.goto(`${baseUrl}/register`, { waitUntil: "networkidle" });
@@ -256,13 +380,34 @@ async function testRegistrationAndWizard(page, email, password) {
   await page.getByRole("main").getByText("Step 2 of 4", { exact: true }).waitFor();
   await page.getByRole("button", { name: /Next: More Info/ }).click();
   await expectText(page, "Please select at least one available time slot.");
-  await page.locator(".slot-btn").first().click();
+  const slotButtons = page.locator(".slot-btn");
+  const slotCount = await slotButtons.count();
+  for (let index = 0; index < slotCount; index += 1) {
+    await slotButtons.nth(index).click();
+    if (!(await slotButtons.nth(index).evaluate((button) => button.classList.contains("slot-btn-active")))) {
+      throw new Error(`Availability slot ${index + 1} did not activate.`);
+    }
+  }
+  for (let index = 0; index < slotCount; index += 1) {
+    await slotButtons.nth(index).click();
+    if (await slotButtons.nth(index).evaluate((button) => button.classList.contains("slot-btn-active"))) {
+      throw new Error(`Availability slot ${index + 1} did not toggle off.`);
+    }
+  }
+  await slotButtons.first().click();
   await page.locator('textarea[name="experience"]').fill("Automated end-to-end test submission.");
   await page.getByRole("button", { name: /Next: More Info/ }).click();
   await page.getByRole("main").getByText("Step 3 of 4", { exact: true }).waitFor();
 
-  const firstSkill = page.locator('input[type="checkbox"]').first();
-  await firstSkill.check();
+  const skillInputs = page.locator(".skills-grid input[type='checkbox']");
+  const skillCount = await skillInputs.count();
+  for (let index = 0; index < skillCount; index += 1) {
+    await skillInputs.nth(index).check();
+  }
+  if (await skillInputs.evaluateAll((inputs) => inputs.some((input) => !input.checked))) {
+    throw new Error("Not every skill checkbox could be selected.");
+  }
+  const firstSkill = skillInputs.first();
   await page.getByRole("button", { name: /Review Application/ }).click();
   await expectText(page, "You must agree to the volunteer terms and code of conduct.");
   await page.locator('select[name="heardAbout"]').selectOption({ label: "School / University" });
@@ -311,6 +456,9 @@ async function testRegistrationAndWizard(page, email, password) {
   await page.locator(".application-card").filter({ hasText: "Automation Tester" }).first().waitFor();
 
   await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.goto(`${baseUrl}/signup`, { waitUntil: "networkidle" });
+  await expectUrl(page, /\/$/);
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
   const appliedOpportunityCard = page.locator(".opportunity-card").filter({ hasText: opportunityName }).first();
   await appliedOpportunityCard.getByRole("button", { name: "Apply Now" }).click();
   await appliedOpportunityCard.getByText("You've already applied to this opportunity.").waitFor();
@@ -318,6 +466,37 @@ async function testRegistrationAndWizard(page, email, password) {
   if (await page.getByText("Step 1 of 4", { exact: true }).count()) {
     throw new Error("Duplicate application opened the multi-step form.");
   }
+
+  const browseAccountEmail = `e2e-browse-${Date.now()}@example.com`;
+  const browseAccountResponse = await page.request.post(`${apiUrl}/api/auth/register`, {
+    data: { email: browseAccountEmail, password },
+  });
+  if (!browseAccountResponse.ok()) throw new Error("Success navigation test account could not be created.");
+  const { token: browseAccountToken } = await browseAccountResponse.json();
+  try {
+    await page.evaluate(({ key, token }) => localStorage.setItem(key, token), { key: tokenKey, token: browseAccountToken });
+    await page.reload({ waitUntil: "networkidle" });
+    const browseOpportunityName = await openFirstOpportunity(page);
+    await fillValidStepOne(page, browseAccountEmail);
+    await page.getByRole("button", { name: /Next: Availability/ }).click();
+    await page.locator(".slot-btn").first().click();
+    await page.getByRole("button", { name: /Next: More Info/ }).click();
+    await page.locator('select[name="heardAbout"]').selectOption({ label: "Other" });
+    await page.locator('input[type="checkbox"]').last().check();
+    await page.getByRole("button", { name: /Review Application/ }).click();
+    await page.getByRole("button", { name: "Confirm & Submit" }).click();
+    await page.getByRole("heading", { name: "Thank you for signing up!" }).waitFor();
+    await page.getByText(browseOpportunityName, { exact: true }).last().waitFor();
+    await page.getByRole("button", { name: "Browse more opportunities" }).click();
+    await expectUrl(page, /\/$/);
+  } finally {
+    const cleanupResponse = await page.request.delete(`${apiUrl}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${browseAccountToken}` },
+    });
+    if (!cleanupResponse.ok()) console.error(`WARNING: success navigation cleanup returned HTTP ${cleanupResponse.status()}.`);
+  }
+  await page.evaluate(() => localStorage.clear());
+  await login(page, email, password);
 }
 
 async function testAdmin(page, userEmail, userPassword) {
@@ -340,10 +519,16 @@ async function testAdmin(page, userEmail, userPassword) {
 
   const row = page.locator(".admin-row").filter({ hasText: uniqueName });
   await row.getByRole("button", { name: "Edit" }).click();
+  await expectText(page, "Save changes");
+  await page.getByRole("button", { name: "Cancel edit" }).click();
+  await expectText(page, "Create opportunity");
+  await row.getByRole("button", { name: "Edit" }).click();
   await form.locator("textarea").fill("Updated by comprehensive E2E coverage.");
   await form.getByRole("button", { name: "Save changes" }).click();
   await expectText(page, "Opportunity updated.");
-  await expectText(page, "Updated by comprehensive E2E coverage.");
+  await row.getByText("Updated by comprehensive E2E coverage.", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Refresh data" }).click();
+  await row.waitFor();
 
   const applicationTab = page.getByRole("tab", { name: /Applications/ });
   await applicationTab.click();
@@ -353,15 +538,61 @@ async function testAdmin(page, userEmail, userPassword) {
   const userApplication = applicationRows.filter({ hasText: userEmail });
   await userApplication.first().getByRole("button", { name: /Automation Tester/ }).click();
   await expectText(page, "Automated end-to-end test submission.");
+  await userApplication.first().getByRole("button", { name: /Automation Tester/ }).click();
+  if (await userApplication.first().getByText("Automated end-to-end test submission.").count()) {
+    throw new Error("Application details did not collapse.");
+  }
+  await userApplication.first().getByRole("button", { name: /Automation Tester/ }).click();
+  await expectText(page, "Automated end-to-end test submission.");
   await userApplication.first().getByRole("button", { name: "Approve", exact: true }).click();
   await expectText(page, "Application status updated.");
   await userApplication.first().getByText("Confirmed", { exact: true }).waitFor();
+  await page.getByPlaceholder("Search applicant name or email...").fill(userEmail);
+  await page.getByRole("button", { name: "Confirmed", exact: true }).click();
+  if ((await page.locator(".application-row").count()) !== 1) throw new Error("Confirmed filter did not show the approved application.");
+  await page.getByRole("button", { name: "Pending", exact: true }).click();
+  if ((await page.locator(".application-row").count()) !== 0) throw new Error("Pending filter showed an approved application.");
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  const rejectButton = userApplication.first().getByRole("button", { name: "Reject", exact: true });
+  if (!(await rejectButton.count())) {
+    await userApplication.first().getByRole("button", { name: /Automation Tester/ }).click();
+  }
+  await rejectButton.click();
+  await expectText(page, "Application status updated.");
+  await userApplication.first().getByText("Cancelled", { exact: true }).waitFor();
   await page.getByPlaceholder("Search applicant name or email...").fill("not-a-real-applicant");
   await expectText(page, "No applications match these filters.");
   await page.getByPlaceholder("Search applicant name or email...").fill(userEmail);
   await page.getByRole("button", { name: "Cancelled", exact: true }).click();
-  if ((await page.locator(".application-row").count()) !== 0) throw new Error("Rejected filter showed an approved application.");
+  if ((await page.locator(".application-row").count()) !== 1) throw new Error("Cancelled filter did not show the rejected application.");
   await page.getByRole("button", { name: "All", exact: true }).click();
+  await page.getByPlaceholder("Search applicant name or email...").fill("");
+
+  await page.route("**/api/admin/applications", async (route) => {
+    const response = await route.fetch();
+    const applications = await response.json();
+    const template = applications[0];
+    const expandedApplications = Array.from({ length: 16 }, (_, index) => ({
+      ...template,
+      id: template.id + index + 100000,
+      firstName: `Pagination${index + 1}`,
+      email: `pagination-${index + 1}@example.com`,
+    }));
+    await route.fulfill({ response, json: [template, ...expandedApplications] });
+  });
+  await page.getByRole("button", { name: "Refresh data" }).click();
+  await page.getByText("Page 1 of 2", { exact: true }).waitFor();
+  const nextPage = page.getByRole("button", { name: "Next" });
+  if (await nextPage.isDisabled()) throw new Error("Pagination Next button was disabled with multiple pages.");
+  await nextPage.click();
+  await page.getByText("Page 2 of 2", { exact: true }).waitFor();
+  const previousPage = page.getByRole("button", { name: "Previous" });
+  if (await previousPage.isDisabled()) throw new Error("Pagination Previous button was disabled on page two.");
+  await previousPage.click();
+  await page.getByText("Page 1 of 2", { exact: true }).waitFor();
+  await page.unroute("**/api/admin/applications");
+  await page.getByRole("button", { name: "Refresh data" }).click();
+  await page.getByText("Page 1 of 1", { exact: true }).waitFor();
 
   const token = await page.evaluate((key) => localStorage.getItem(key), tokenKey);
   const applicationsResponse = await page.request.get(`${apiUrl}/api/admin/applications`, { headers: { Authorization: `Bearer ${token}` } });
@@ -407,8 +638,9 @@ async function run() {
     await testAuthAndGuards(page, userEmail, userPassword);
     await testRegistrationAndWizard(page, userEmail, userPassword);
     userCreated = true;
+    await testSecurityHardening(page, userEmail, userPassword);
     await testAdmin(page, userEmail, userPassword);
-    console.log("PASS: home, auth, guards, password visibility, wizard validation/navigation, persistence, admin CRUD, filters, status, and cleanup workflows");
+    console.log("PASS: browser workflows, admin authorization, atomic capacity, expired sessions, CORS, Helmet, CRUD, filters, status, and cleanup workflows");
   } finally {
     if (userCreated && !page.isClosed()) {
       try {

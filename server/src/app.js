@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import { errorHandler } from "./middleware/errorHandler.js";
 import eventRoutes from "./routes/event.routes.js";
 import volunteerRoutes from "./routes/volunteer.routes.js";
@@ -10,7 +11,13 @@ import adminRoutes from "./routes/admin.routes.js";
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = (process.env.FRONTEND_ORIGINS || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({ origin: allowedOrigins }));
+app.use(helmet());
 app.use(express.json());
 
 // Health check endpoint
