@@ -9,6 +9,8 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import SignUpPage from "./pages/SignUpPage";
 import MyApplicationsPage from "./pages/MyApplicationsPage";
+import AdminPage from "./pages/AdminPage";
+import RequireAdmin from "./components/RequireAdmin";
 
 function App() {
   const [isDark, setIsDark] = useState(false);
@@ -26,6 +28,9 @@ function App() {
               <Route element={<RequireAuth />}>
                 <Route path="/signup" element={<SignUpPage />} />
                 <Route path="/my-applications" element={<MyApplicationsPage />} />
+              </Route>
+              <Route element={<RequireAdmin />}>
+                <Route path="/admin" element={<AdminPage />} />
               </Route>
             </Routes>
           </div>

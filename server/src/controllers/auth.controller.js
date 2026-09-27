@@ -5,7 +5,9 @@ import Account from "../models/account.model.js";
 function toAccountResponse(account) {
   return {
     id: account.id,
+    username: account.username,
     email: account.email,
+    role: account.role,
     createdAt: account.createdAt,
   };
 }

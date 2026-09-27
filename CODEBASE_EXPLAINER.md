@@ -62,6 +62,8 @@ Submitting an application requires a valid JWT. The backend stores that account'
   * **What it is**: A local MariaDB export and import utility.
   * **What it does**: Reads the database settings from `server/.env`, uses the XAMPP MariaDB tools, exports data to `database/volunteer_app.sql`, and imports that file on another laptop.
 
+To enable administration, set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `server/.env`, then restart the backend. The startup process creates the account if it is missing or promotes the matching account to the `admin` role.
+
 ---
 
 ### 2. Backend Files (`server/`) — "The Engine & Kitchen"

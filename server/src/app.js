@@ -6,6 +6,7 @@ import volunteerRoutes from "./routes/volunteer.routes.js";
 import opportunityRoutes from "./routes/opportunity.routes.js";
 import applicationRoutes from "./routes/application.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Original API Routes (events table + volunteers/signups tables)
 app.use("/api/events", eventRoutes);

@@ -27,9 +27,12 @@ CREATE TABLE `accounts` (
   `email` varchar(150) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
   `created_at` datetime DEFAULT NULL,
+  `role` varchar(20) NOT NULL DEFAULT 'user',
+  `username` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -38,7 +41,7 @@ CREATE TABLE `accounts` (
 
 LOCK TABLES `accounts` WRITE;
 /*!40000 ALTER TABLE `accounts` DISABLE KEYS */;
-INSERT INTO `accounts` VALUES (1,'e2e-1790494064037@example.com','$2b$12$o9.0CvaZnHcPcDMQKb6v..w2luiiG3PqlbYN/upG4jAyXfC29pNBS','2026-09-27 07:27:45'),(2,'e2e-1790494173791@example.com','$2b$12$obwMt6c7DvUPeY.h0G5nKubR0EUMNfSEPJ5M5qWznikeCr6pspaka','2026-09-27 07:29:34'),(3,'e2e-1790494338647@example.com','$2b$12$2G73c5RFrznOjL3lyGmQa.uYP5Q/gGB4fllXUyF3tkiOYkM0i8SlG','2026-09-27 07:32:19'),(4,'e2e-1790494387683@example.com','$2b$12$RkYI26oDGoAU/OAHp5/JbOngY.oSUM8DiboUMzG6tNUGuVlpvFeEO','2026-09-27 07:33:08'),(5,'e2e-1790494431843@example.com','$2b$12$uQlGOggODS8gU3S938D1AOQOxvqXhTmVcQlBiy20uj2pOnhdbFtCG','2026-09-27 07:33:53'),(6,'e2e-1790494472715@example.com','$2b$12$AGT5vqGm200FNE3Dzq9wvuEVq7IASnfJSYm55Qik6Du6N15uysAEC','2026-09-27 07:34:33'),(7,'e2e-1790494522734@example.com','$2b$12$BxCIfA.jkimVGPeXQwfLH.lXWqBpO4wuXXzAwV1qC1eB0RQExOl06','2026-09-27 07:35:24'),(8,'e2e-1790494603750@example.com','$2b$12$EEX2cYjXD0CSkjKYYVz0s.ZaTmL53G.XMGsCY887zZmOGjyd/qgRm','2026-09-27 07:36:45'),(9,'e2e-1790495024427@example.com','$2b$12$elX4s0zPi2pcJrZV146taO9GGD90xQYZDDV9TQetG.cOvRX7laYOa','2026-09-27 07:43:46');
+INSERT INTO `accounts` VALUES (1,'e2e-1790494064037@example.com','$2b$12$o9.0CvaZnHcPcDMQKb6v..w2luiiG3PqlbYN/upG4jAyXfC29pNBS','2026-09-27 07:27:45','user',NULL),(2,'e2e-1790494173791@example.com','$2b$12$obwMt6c7DvUPeY.h0G5nKubR0EUMNfSEPJ5M5qWznikeCr6pspaka','2026-09-27 07:29:34','user',NULL),(3,'e2e-1790494338647@example.com','$2b$12$2G73c5RFrznOjL3lyGmQa.uYP5Q/gGB4fllXUyF3tkiOYkM0i8SlG','2026-09-27 07:32:19','user',NULL),(4,'e2e-1790494387683@example.com','$2b$12$RkYI26oDGoAU/OAHp5/JbOngY.oSUM8DiboUMzG6tNUGuVlpvFeEO','2026-09-27 07:33:08','user',NULL),(5,'e2e-1790494431843@example.com','$2b$12$uQlGOggODS8gU3S938D1AOQOxvqXhTmVcQlBiy20uj2pOnhdbFtCG','2026-09-27 07:33:53','user',NULL),(6,'e2e-1790494472715@example.com','$2b$12$AGT5vqGm200FNE3Dzq9wvuEVq7IASnfJSYm55Qik6Du6N15uysAEC','2026-09-27 07:34:33','user',NULL),(7,'e2e-1790494522734@example.com','$2b$12$BxCIfA.jkimVGPeXQwfLH.lXWqBpO4wuXXzAwV1qC1eB0RQExOl06','2026-09-27 07:35:24','user',NULL),(8,'e2e-1790494603750@example.com','$2b$12$EEX2cYjXD0CSkjKYYVz0s.ZaTmL53G.XMGsCY887zZmOGjyd/qgRm','2026-09-27 07:36:45','user',NULL),(9,'e2e-1790495024427@example.com','$2b$12$elX4s0zPi2pcJrZV146taO9GGD90xQYZDDV9TQetG.cOvRX7laYOa','2026-09-27 07:43:46','user',NULL),(11,'e2e-1790496232884@example.com','$2b$12$q11X.iaLeNcSMyv8tdZWKuBG8V2xpnu5tugBeLmCLg6Rj9D27N7na','2026-09-27 08:03:55','user',NULL),(12,'realadmin@example.com','$2b$12$4xkUxhgmZ8x/QU/hQ8T6LO/XsfL6TFwNzZV0i4IdzMbffc3gY00wu','2026-09-27 08:08:16','admin','realAdmin'),(13,'e2e-1790496575023@example.com','$2b$12$rmfAbR5tyLdzjeB0T4L0OOBDGlmJSyKxTE.U9jxQ3f1yPWPi.w2BW','2026-09-27 08:09:36','user',NULL);
 /*!40000 ALTER TABLE `accounts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -129,7 +132,7 @@ CREATE TABLE `users` (
   KEY `account_id` (`account_id`),
   CONSTRAINT `users_ibfk_1` FOREIGN KEY (`volunteer_id`) REFERENCES `volunteers` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `users_ibfk_2` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -138,7 +141,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,1,3,'Automation','Tester','e2e-1790494338647@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:32:20'),(2,1,4,'Automation','Tester','e2e-1790494387683@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:33:09'),(3,1,5,'Automation','Tester','e2e-1790494431843@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:33:53'),(4,1,6,'Automation','Tester','e2e-1790494472715@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:34:34'),(5,1,7,'Automation','Tester','e2e-1790494522734@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:35:24'),(6,1,8,'Automation','Tester','e2e-1790494603750@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:36:45'),(7,1,9,'Automation','Tester','e2e-1790495024427@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:43:46');
+INSERT INTO `users` VALUES (1,1,3,'Automation','Tester','e2e-1790494338647@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:32:20'),(2,1,4,'Automation','Tester','e2e-1790494387683@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:33:09'),(3,1,5,'Automation','Tester','e2e-1790494431843@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:33:53'),(4,1,6,'Automation','Tester','e2e-1790494472715@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:34:34'),(5,1,7,'Automation','Tester','e2e-1790494522734@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:35:24'),(6,1,8,'Automation','Tester','e2e-1790494603750@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:36:45'),(7,1,9,'Automation','Tester','e2e-1790495024427@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 07:43:46'),(8,1,11,'Automation','Tester','e2e-1790496232884@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 08:03:55'),(9,1,13,'Automation','Tester','e2e-1790496575023@example.com','55512345678',25,'Springfield','[\"Mon-Morning\"]','Automated end-to-end test submission.','[]','School / University',1,'2026-09-27 08:09:37');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -157,7 +160,7 @@ CREATE TABLE `volunteers` (
   `spots_left` int(11) NOT NULL DEFAULT 0,
   `created_at` datetime NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -166,7 +169,7 @@ CREATE TABLE `volunteers` (
 
 LOCK TABLES `volunteers` WRITE;
 /*!40000 ALTER TABLE `volunteers` DISABLE KEYS */;
-INSERT INTO `volunteers` VALUES (1,'Community Tutor','Education','Assist children and teens with after-school reading, mathematics, and general study support.',5,'2026-09-27 07:09:49'),(2,'Tree Planting & Clean-up','Environment','Join weekend local reforestation and neighborhood waste-reduction campaigns.',25,'2026-09-27 07:09:49'),(3,'Food Drive Logistics','Outreach','Help organize, pack, and distribute care packages and meals to families in need.',8,'2026-09-27 07:09:49');
+INSERT INTO `volunteers` VALUES (1,'Community Tutor','Education','Assist children and teens with after-school reading, mathematics, and general study support.',3,'2026-09-27 07:09:49'),(2,'Tree Planting & Clean-up','Environment','Join weekend local reforestation and neighborhood waste-reduction campaigns.',25,'2026-09-27 07:09:49'),(3,'Food Drive Logistics','Outreach','Help organize, pack, and distribute care packages and meals to families in need.',8,'2026-09-27 07:09:49');
 /*!40000 ALTER TABLE `volunteers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -187,4 +190,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-27 15:47:09
+-- Dump completed on 2026-09-27 16:09:40

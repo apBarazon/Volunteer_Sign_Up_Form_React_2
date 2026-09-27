@@ -17,6 +17,7 @@ function Navbar({ isDark, onToggleTheme }: NavbarProps) {
         {account ? (
           <>
             <Link to="/my-applications">My Applications</Link>
+            {account.role === "admin" && <Link to="/admin">Admin Panel</Link>}
             <button type="button" className="nav-button" onClick={logout}>Log out</button>
           </>
         ) : (

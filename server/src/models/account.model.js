@@ -10,6 +10,11 @@ Account.init(
       autoIncrement: true,
       primaryKey: true,
     },
+    username: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      unique: true,
+    },
     email: {
       type: DataTypes.STRING(150),
       allowNull: false,
@@ -19,6 +24,12 @@ Account.init(
       type: DataTypes.STRING(255),
       allowNull: false,
       field: "password_hash",
+    },
+    role: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "user",
+      validate: { isIn: [["user", "admin"]] },
     },
     createdAt: {
       type: DataTypes.DATE,

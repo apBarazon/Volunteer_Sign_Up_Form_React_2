@@ -1,5 +1,6 @@
 import "dotenv/config";
 import app from "./app.js";
+import bcrypt from "bcryptjs";
 import sequelize, { ensureDatabase } from "./config/db.js";
 
 // Original models
@@ -117,6 +118,49 @@ async function ensureAccountIdColumn() {
   console.log("✅ Added account ownership to existing applications.");
 }
 
+async function ensureAccountUsernameColumn() {
+  const [columns] = await sequelize.query("SHOW COLUMNS FROM accounts LIKE 'username'");
+  if (columns.length === 0) {
+    await sequelize.query(
+      "ALTER TABLE accounts ADD COLUMN username VARCHAR(50) NULL UNIQUE"
+    );
+    console.log("✅ Added account usernames.");
+  }
+}
+
+async function ensureAccountRoleColumn() {
+  const [columns] = await sequelize.query("SHOW COLUMNS FROM accounts LIKE 'role'");
+  if (columns.length === 0) {
+    await sequelize.query(
+      "ALTER TABLE accounts ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'"
+    );
+    console.log("✅ Added account roles.");
+  }
+}
+
+async function ensureAdminAccount() {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD;
+  const username = process.env.ADMIN_USERNAME?.trim();
+  if (!email || !password || !username) return;
+
+  const [account, created] = await Account.findOrCreate({
+    where: { email },
+    defaults: {
+      username,
+      email,
+      passwordHash: await bcrypt.hash(password, 12),
+      role: "admin",
+    },
+  });
+
+  if (!created) {
+    await account.update({ username, role: "admin" });
+  }
+
+  console.log(`✅ Definitive admin account ready: ${username} (${email}).`);
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 try {
@@ -127,7 +171,10 @@ try {
   // Synchronize missing tables without repeatedly rewriting existing constraints.
   await sequelize.sync();
   console.log("✅ Database tables synchronized.");
+  await ensureAccountUsernameColumn();
+  await ensureAccountRoleColumn();
   await ensureAccountIdColumn();
+  await ensureAdminAccount();
 
   // Seed starter data
   await seedInitialEvents();

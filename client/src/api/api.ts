@@ -17,7 +17,9 @@ async function parseError(res: Response, fallback: string) {
 
 export type AuthAccount = {
   id: number;
+  username: string | null;
   email: string;
+  role: "user" | "admin";
   createdAt: string;
 };
 
@@ -107,4 +109,58 @@ export async function fetchApplications(): Promise<ApplicationRecord[]> {
   const res = await fetch(`${BASE_URL}/applications`, { headers: authHeaders() });
   if (!res.ok) await parseError(res, "Failed to load applications.");
   return res.json();
+}
+
+export type AdminOpportunity = VolunteerOpportunity;
+
+export type AdminApplication = ApplicationRecord & {
+  accountEmail: string | null;
+};
+
+export async function fetchAdminOpportunities(): Promise<AdminOpportunity[]> {
+  const res = await fetch(`${BASE_URL}/admin/opportunities`, { headers: authHeaders() });
+  if (!res.ok) await parseError(res, "Failed to load admin opportunities.");
+  return res.json();
+}
+
+export async function createAdminOpportunity(data: Omit<AdminOpportunity, "id">) {
+  const res = await fetch(`${BASE_URL}/admin/opportunities`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) await parseError(res, "Failed to create opportunity.");
+  return res.json() as Promise<AdminOpportunity>;
+}
+
+export async function updateAdminOpportunity(id: number, data: Partial<Omit<AdminOpportunity, "id">>) {
+  const res = await fetch(`${BASE_URL}/admin/opportunities/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) await parseError(res, "Failed to update opportunity.");
+  return res.json() as Promise<AdminOpportunity>;
+}
+
+export async function deleteAdminOpportunity(id: number) {
+  const res = await fetch(`${BASE_URL}/admin/opportunities/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) await parseError(res, "Failed to delete opportunity.");
+}
+
+export async function fetchAdminApplications(): Promise<AdminApplication[]> {
+  const res = await fetch(`${BASE_URL}/admin/applications`, { headers: authHeaders() });
+  if (!res.ok) await parseError(res, "Failed to load all applications.");
+  return res.json();
+}
+
+export async function deleteAdminApplication(id: number) {
+  const res = await fetch(`${BASE_URL}/admin/applications/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) await parseError(res, "Failed to delete application.");
 }

@@ -12,7 +12,8 @@ export async function requireAuth(req, res, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const account = await Account.findByPk(payload.sub, {
-      attributes: ["id", "email", "createdAt"],
+      attributes: ["id", "email", "role", "createdAt"],
+        attributes: ["id", "username", "email", "role", "createdAt"],
     });
 
     if (!account) {
@@ -24,4 +25,12 @@ export async function requireAuth(req, res, next) {
   } catch {
     return res.status(401).json({ message: "Invalid or expired token." });
   }
+}
+
+export function requireAdmin(req, res, next) {
+  if (req.account?.role !== "admin") {
+    return res.status(403).json({ message: "Administrator access is required." });
+  }
+
+  next();
 }

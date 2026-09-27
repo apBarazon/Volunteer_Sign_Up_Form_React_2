@@ -54,6 +54,7 @@ This document tracks the progress, architectural decisions, and current status o
 | **Automated Testing** | [`E2E_TESTING.md`](./E2E_TESTING.md) | Complete | Instructions for repeatable browser and database smoke tests |
 | **Automated Testing** | [`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs) | Complete | Playwright workflow covering validation, auth, submission, reload, and read-back |
 | **Database Sync** | [`scripts/db-sync.mjs`](./scripts/db-sync.mjs) | Complete | Root commands for exporting and importing local MariaDB data |
+| **Administration** | [`client/src/pages/AdminPage.tsx`](./client/src/pages/AdminPage.tsx) | Complete | Admin-only opportunity CRUD and application management dashboard |
 
 ---
 
@@ -111,6 +112,21 @@ This document tracks the progress, architectural decisions, and current status o
 - Database export completed successfully.
 - Database import completed successfully.
 - The E2E smoke test remains available after database restoration.
+
+### [Checkpoint 9] Admin Panel and Role-Protected CRUD
+**Timestamp**: `2026-09-27`
+**Contributors**: User, GitHub Copilot
+
+#### What Was Accomplished:
+1. Added persistent `user` and `admin` account roles with a safe upgrade for existing databases.
+2. Added `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` bootstrap configuration for creating or promoting the definitive admin account at backend startup.
+3. Added admin-only CRUD endpoints for volunteer opportunities.
+4. Added admin application review and deletion, restoring an opportunity spot when an application is removed.
+5. Added the protected Admin Panel route and responsive dashboard UI.
+
+#### Verification:
+- Client production build passes.
+- Existing non-admin accounts remain blocked from admin endpoints.
 
 ### [Checkpoint 5] Antigravity Handoff & GitHub Publishing Recovery
 **Timestamp**: `2026-09-22`

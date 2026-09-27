@@ -267,3 +267,28 @@ label { display: block; font-size: 0.85rem; font-weight: 600; margin: 1.2rem 0 0
 
 .applications-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
 .link { color: var(--primary); font-weight: 600; }
+
+.eyebrow { color: var(--primary); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0; }
+.admin-page .page-title { text-align: left; margin-top: 0.25rem; }
+.admin-page .page-subtitle { text-align: left; }
+.admin-header, .admin-section-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.admin-message { margin: 1rem 0; }
+.success { color: #15803d; font-size: 0.8rem; }
+.admin-section { margin-top: 2rem; }
+.admin-section h2 { margin-bottom: 0.25rem; }
+.admin-form { display: grid; grid-template-columns: 2fr 1fr 0.75fr auto; gap: 0.75rem; align-items: end; margin: 1rem 0 1.5rem; }
+.admin-form label { margin: 0; }
+.admin-form-wide { grid-column: 1 / -2; }
+.admin-form > .btn { margin-bottom: 0; }
+.admin-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.admin-row { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; padding: 1rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; }
+.admin-row-meta { display: block; color: var(--subtitle); font-size: 0.8rem; margin-top: 0.25rem; }
+.admin-row p { color: var(--subtitle); font-size: 0.85rem; margin: 0.5rem 0 0; }
+.admin-row-actions { margin-top: 0; }
+
+@media (max-width: 720px) {
+  .admin-header, .admin-section-header, .admin-row { flex-direction: column; }
+  .admin-form { grid-template-columns: 1fr; }
+  .admin-form-wide { grid-column: auto; }
+  .admin-row .btn { width: 100%; }
+}

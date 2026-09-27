@@ -36,3 +36,7 @@ npm run db:import
 ```
 
 The commands use the MariaDB settings in `server/.env` and look for XAMPP at `C:\xampp\mysql\bin`. Set `MYSQL_BIN_DIR` if XAMPP is installed elsewhere. The SQL file is tracked by Git so it can be pushed and pulled between laptops. Only commit it to a private repository because it may contain account and applicant data.
+
+## Enable the admin panel
+
+Set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `server/.env`. On startup, the server creates that account if it is missing, or promotes the matching account to the `admin` role if it already exists. No manual database update or registration step is required.
