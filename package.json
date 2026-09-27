@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "db:export": "node scripts/db-sync.mjs export",
+    "db:import": "node scripts/db-sync.mjs import",
     "test:e2e": "node scripts/e2e-smoke.mjs",
     "test:e2e:install": "playwright install chromium"
   },

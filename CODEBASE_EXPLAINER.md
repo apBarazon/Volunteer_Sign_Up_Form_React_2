@@ -51,13 +51,16 @@ Submitting an application requires a valid JWT. The backend stores that account'
   * **What it is**: The friendly dictionary explaining every file in the codebase.
 * **[`package.json`](./package.json)**
   * **What it is**: The root command center for the automated browser test.
-  * **What it does**: Provides `npm run test:e2e` and the one-time Playwright browser installation command.
+  * **What it does**: Provides `npm run test:e2e`, `npm run db:export`, `npm run db:import`, and the one-time Playwright browser installation command.
 * **[`E2E_TESTING.md`](./E2E_TESTING.md)**
   * **What it is**: The instructions for running the repeatable end-to-end smoke test.
   * **What it does**: Explains setup, database requirements, and what the automated workflow verifies.
 * **[`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs)**
   * **What it is**: A Playwright browser test that behaves like a real user.
   * **What it does**: Starts missing development servers, clears browser state, tests validation, creates an account, submits an application, reloads the page, and verifies that MariaDB-backed data appears in My Applications.
+* **[`scripts/db-sync.mjs`](./scripts/db-sync.mjs)**
+  * **What it is**: A local MariaDB export and import utility.
+  * **What it does**: Reads the database settings from `server/.env`, uses the XAMPP MariaDB tools, exports data to `database/volunteer_app.sql`, and imports that file on another laptop.
 
 ---
 
@@ -183,6 +186,16 @@ When an authenticated volunteer submits the application form:
 4. **Backend Security**: `requireAuth` verifies the JWT and loads `req.account`; `validate(applicationSchema)` checks the request body.
 5. **Ownership**: The controller writes `account_id = req.account.id` with the application and decrements the opportunity's remaining spots in a transaction.
 6. **My Applications**: Later, `GET /api/applications` filters by that same account ID, so another account cannot see the record.
+
+## Synchronizing Local Database Data
+
+Each laptop has its own MariaDB data, so Git does not synchronize accounts or applications. To move the latest local data between laptops:
+
+1. Run `npm run db:export` from the project root on the laptop with the newest data.
+2. Move `database/volunteer_app.sql` to the other laptop's project root.
+3. Run `npm run db:import` from the project root on the other laptop.
+
+The commands use the settings in `server/.env` and look for XAMPP at `C:\xampp\mysql\bin`. Set `MYSQL_BIN_DIR` when XAMPP is installed elsewhere. The SQL export is tracked by Git for laptop-to-laptop synchronization, so the repository should be private because the file can contain account and applicant data.
 
 ---
 

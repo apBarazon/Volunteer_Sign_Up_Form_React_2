@@ -53,6 +53,7 @@ This document tracks the progress, architectural decisions, and current status o
 | **Frontend Guard** | [`client/src/components/RequireAuth.tsx`](./client/src/components/RequireAuth.tsx) | Complete | Redirects logged-out users to login for signup and My Applications |
 | **Automated Testing** | [`E2E_TESTING.md`](./E2E_TESTING.md) | Complete | Instructions for repeatable browser and database smoke tests |
 | **Automated Testing** | [`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs) | Complete | Playwright workflow covering validation, auth, submission, reload, and read-back |
+| **Database Sync** | [`scripts/db-sync.mjs`](./scripts/db-sync.mjs) | Complete | Root commands for exporting and importing local MariaDB data |
 
 ---
 
@@ -95,6 +96,21 @@ This document tracks the progress, architectural decisions, and current status o
 #### Verification:
 - `npm run test:e2e` passes.
 - `npm run build` passes in `client/`.
+
+### [Checkpoint 8] Local Database Export and Import Commands
+**Timestamp**: `2026-09-27`
+**Contributors**: User, GitHub Copilot
+
+#### What Was Accomplished:
+1. Added `npm run db:export` to create `database/volunteer_app.sql` from the local MariaDB database.
+2. Added `npm run db:import` to restore that SQL dump on another laptop.
+3. Added XAMPP path detection, `server/.env` configuration loading, and an optional `MYSQL_BIN_DIR` override.
+4. Made the SQL export Git-trackable so private repositories can synchronize database data between laptops. The export should not be committed to a public repository.
+
+#### Verification:
+- Database export completed successfully.
+- Database import completed successfully.
+- The E2E smoke test remains available after database restoration.
 
 ### [Checkpoint 5] Antigravity Handoff & GitHub Publishing Recovery
 **Timestamp**: `2026-09-22`
