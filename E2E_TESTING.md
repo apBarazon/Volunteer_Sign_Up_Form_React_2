@@ -13,6 +13,14 @@ npm run test:e2e:install
 
 Make sure XAMPP/MariaDB is installed. The test starts the client and server automatically when they are not already running.
 
+Create the local backend environment file on each computer after pulling the repository:
+
+```powershell
+Copy-Item server/.env.example server/.env
+```
+
+Edit `server/.env` with that computer's MariaDB settings and a unique local `JWT_SECRET` and `ADMIN_PASSWORD`. The real `server/.env` is intentionally ignored by Git; commit only `server/.env.example` so credentials are not shared publicly.
+
 ## Run repeatedly
 
 ```powershell
