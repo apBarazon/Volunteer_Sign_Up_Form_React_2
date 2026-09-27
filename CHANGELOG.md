@@ -123,6 +123,7 @@ This document tracks the progress, architectural decisions, and current status o
 3. Added admin-only CRUD endpoints for volunteer opportunities.
 4. Added admin application review and deletion, restoring an opportunity spot when an application is removed.
 5. Added the protected Admin Panel route and responsive dashboard UI.
+6. Added transactional E2E cleanup so generated accounts and applications do not accumulate or consume opportunity capacity.
 
 #### Verification:
 - Client production build passes.

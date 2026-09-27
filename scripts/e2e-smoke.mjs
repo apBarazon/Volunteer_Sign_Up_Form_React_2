@@ -64,6 +64,7 @@ async function run() {
   const password = "TestPassword123!";
   const firstName = "Automation";
   const lastName = "Tester";
+  let accountCreated = false;
 
   try {
     await page.goto(baseUrl, { waitUntil: "networkidle" });
@@ -88,6 +89,7 @@ async function run() {
 
     await page.getByLabel("Confirm password").fill(password);
     await page.getByRole("button", { name: "Create account" }).click();
+    accountCreated = true;
     try {
       await page.waitForURL(/\/signup/, { timeout: 30000 });
     } catch {
@@ -132,6 +134,21 @@ async function run() {
       }
     console.log(`PASS: registration, validation, application submission, and database read-back (${email})`);
   } finally {
+    if (accountCreated && !page.isClosed()) {
+      try {
+        await page.evaluate(async () => {
+          const token = localStorage.getItem("volunteer_portal_token");
+          const response = await fetch("/api/auth/me", {
+            method: "DELETE",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (!response.ok) throw new Error(`Cleanup returned HTTP ${response.status}.`);
+        });
+        console.log("Cleaned up the E2E account, application, and restored opportunity capacity.");
+      } catch (error) {
+        console.error(`WARNING: E2E cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
     await browser.close();
   }
 }

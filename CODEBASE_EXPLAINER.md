@@ -57,7 +57,7 @@ Submitting an application requires a valid JWT. The backend stores that account'
   * **What it does**: Explains setup, database requirements, and what the automated workflow verifies.
 * **[`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs)**
   * **What it is**: A Playwright browser test that behaves like a real user.
-  * **What it does**: Starts missing development servers, clears browser state, tests validation, creates an account, submits an application, reloads the page, and verifies that MariaDB-backed data appears in My Applications.
+  * **What it does**: Starts missing development servers, clears browser state, tests validation, creates an account, submits an application, reloads the page, verifies that MariaDB-backed data appears in My Applications, then removes the temporary account and restores opportunity capacity.
 * **[`scripts/db-sync.mjs`](./scripts/db-sync.mjs)**
   * **What it is**: A local MariaDB export and import utility.
   * **What it does**: Reads the database settings from `server/.env`, uses the XAMPP MariaDB tools, exports data to `database/volunteer_app.sql`, and imports that file on another laptop.

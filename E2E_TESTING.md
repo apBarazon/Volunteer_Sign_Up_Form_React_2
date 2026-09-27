@@ -19,7 +19,7 @@ Make sure XAMPP/MariaDB is installed. The test starts the client and server auto
 npm run test:e2e
 ```
 
-A successful run ends with `PASS`. Each run creates a unique test account and one application in the local database. The test does not delete real application data.
+A successful run ends with `PASS`, followed by a cleanup message. Each run creates a unique temporary account and application, verifies the saved record, then deletes the test data and restores the opportunity capacity.
 
 ## Sync the local database between laptops
 

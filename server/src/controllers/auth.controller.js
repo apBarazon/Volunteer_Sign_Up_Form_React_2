@@ -1,6 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import sequelize from "../config/db.js";
 import Account from "../models/account.model.js";
+import UserApplication from "../models/userApplication.model.js";
+import VolunteerOpportunity from "../models/volunteerOpportunity.model.js";
 
 function toAccountResponse(account) {
   return {
@@ -66,4 +69,30 @@ export async function login(req, res, next) {
 
 export function me(req, res) {
   res.json({ account: toAccountResponse(req.account) });
+}
+
+export async function deleteCurrentAccount(req, res, next) {
+  const transaction = await sequelize.transaction();
+  try {
+    const applications = await UserApplication.findAll({
+      where: { accountId: req.account.id },
+      include: [{ model: VolunteerOpportunity, as: "opportunity" }],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    for (const application of applications) {
+      await application.destroy({ transaction });
+      if (application.opportunity) {
+        await application.opportunity.increment("spotsLeft", { by: 1, transaction });
+      }
+    }
+
+    await Account.destroy({ where: { id: req.account.id }, transaction });
+    await transaction.commit();
+    res.status(204).end();
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
+  }
 }
