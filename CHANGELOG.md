@@ -4,7 +4,7 @@ This document tracks the progress, architectural decisions, and current status o
 
 ---
 
-## 📌 Quick Project Overview
+## Quick Project Overview
 
 * **Goal**: A volunteer portal where anyone can browse opportunities, while registered users can submit and review their own applications.
 * **Stack**:
@@ -15,42 +15,44 @@ This document tracks the progress, architectural decisions, and current status o
 
 ---
 
-## 🚦 Component Status Board
+## Component Status Board
 
 | Layer | File / Feature | Status | Description |
 |---|---|---|---|
-| **Architecture** | [`volunteer-app-architecture.md`](./volunteer-app-architecture.md) | ✅ Complete | Blueprint & specifications for the entire stack |
-| **Documentation** | [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) | ✅ Complete | Plain-English beginner guide explaining every file & concept |
-| **Git Config** | [`.gitignore`](./.gitignore) | ✅ Complete | Root ignore rules (prevents tracking `node_modules` and `.env`) |
-| **Backend Config** | [`server/.env.example`](./server/.env.example) | ✅ Complete | Template for teammates to configure their local MariaDB |
-| **Backend Config** | [`server/package.json`](./server/package.json) | ✅ Complete | Express, Sequelize, MySQL2, Zod, CORS, Dotenv, bcryptjs, and jsonwebtoken |
-| **Backend Config** | [`server/.env`](./server/.env) | ✅ Complete | MariaDB connection variables and local JWT signing secret |
-| **Backend Config** | [`server/src/config/db.js`](./server/src/config/db.js) | ✅ Complete | Sequelize MariaDB connection setup |
-| **Backend Server** | [`server/src/server.js`](./server/src/server.js) | ✅ Complete | Associations, safe table sync, account ownership upgrade, seeding, listener |
-| **Backend Server** | [`server/src/app.js`](./server/src/app.js) | ✅ Complete | Express app with public opportunity routes, auth routes, protected application routes, and error handler |
-| **Authentication** | [`server/src/models/account.model.js`](./server/src/models/account.model.js) | ✅ Complete | Separate login account table with unique email and password hash |
-| **Authentication** | [`server/src/controllers/auth.controller.js`](./server/src/controllers/auth.controller.js) | ✅ Complete | Registration, login, password hashing, JWT creation, and current-account response |
-| **Authentication** | [`server/src/middleware/requireAuth.js`](./server/src/middleware/requireAuth.js) | ✅ Complete | Verifies Bearer JWTs and attaches the account to the request |
-| **Authentication** | [`server/src/routes/auth.routes.js`](./server/src/routes/auth.routes.js) | ✅ Complete | `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me` |
-| **Application Ownership** | [`server/src/models/userApplication.model.js`](./server/src/models/userApplication.model.js) | ✅ Complete | Existing `users` application table with nullable `account_id` ownership link |
-| **Application Ownership** | [`server/src/routes/application.routes.js`](./server/src/routes/application.routes.js) | ✅ Complete | Requires authentication for listing and submitting applications |
-| **Database Models** | [`server/src/models/volunteer.model.js`](./server/src/models/volunteer.model.js) | ✅ Complete | Volunteer entity (`id`, `full_name`, `email`, `phone`) |
-| **Database Models** | [`server/src/models/event.model.js`](./server/src/models/event.model.js) | ✅ Complete | Event entity (`id`, `title`, `description`, `event_date`, `location`, `capacity`) |
-| **Database Models** | [`server/src/models/signup.model.js`](./server/src/models/signup.model.js) | ✅ Complete | Join table linking `volunteer_id` and `event_id` with unique constraint |
-| **Validation** | [`server/src/schemas/volunteer.schema.js`](./server/src/schemas/volunteer.schema.js) | ✅ Complete | Zod schema validating volunteer sign-up inputs |
-| **Middleware** | [`server/src/middleware/validate.js`](./server/src/middleware/validate.js) | ✅ Complete | Express middleware running Zod schema validation on `req.body` |
-| **Middleware** | [`server/src/middleware/errorHandler.js`](./server/src/middleware/errorHandler.js) | ✅ Complete | Global error handler with clean JSON responses & Sequelize error handling |
-| **Controllers** | [`server/src/controllers/volunteer.controller.js`](./server/src/controllers/volunteer.controller.js) | ✅ Complete | `signup` handler: capacity check, duplicate check, volunteer create, signup insert |
-| **Controllers** | [`server/src/controllers/event.controller.js`](./server/src/controllers/event.controller.js) | ✅ Complete | `getEvents` handler: queries events ordered by date |
-| **Routes** | [`server/src/routes/volunteer.routes.js`](./server/src/routes/volunteer.routes.js) | ✅ Complete | `POST /signup` with Zod validation middleware |
-| **Routes** | [`server/src/routes/event.routes.js`](./server/src/routes/event.routes.js) | ✅ Complete | `GET /` to fetch upcoming events |
-| **Frontend UI** | [`client/src/App.tsx`](./client/src/App.tsx) | ✅ Complete | React Router SPA with public browsing and guarded application routes |
-| **Frontend API** | [`client/src/api/api.ts`](./client/src/api/api.ts) | ✅ Complete | Opportunity, auth, and application requests with bearer-token support |
-| **Frontend Auth** | [`client/src/context/AuthContext.tsx`](./client/src/context/AuthContext.tsx) | ✅ Complete | Persists the JWT, restores `/me`, and exposes login/register/logout |
-| **Frontend Auth** | [`client/src/pages/LoginPage.tsx`](./client/src/pages/LoginPage.tsx) | ✅ Complete | Login form with Zod credential validation and return-path handling |
-| **Frontend Auth** | [`client/src/pages/RegisterPage.tsx`](./client/src/pages/RegisterPage.tsx) | ✅ Complete | Registration form with password confirmation and return-path handling |
-| **Frontend Form** | [`client/src/pages/SignUpPage.tsx`](./client/src/pages/SignUpPage.tsx) | ✅ Complete | Four-step application form with comprehensive client/server validation |
-| **Frontend Guard** | [`client/src/components/RequireAuth.tsx`](./client/src/components/RequireAuth.tsx) | ✅ Complete | Redirects logged-out users to login for signup and My Applications |
+| **Architecture** | [`volunteer-app-architecture.md`](./volunteer-app-architecture.md) | Complete | Blueprint & specifications for the entire stack |
+| **Documentation** | [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) | Complete | Plain-English beginner guide explaining every file & concept |
+| **Git Config** | [`.gitignore`](./.gitignore) | Complete | Root ignore rules (prevents tracking `node_modules` and `.env`) |
+| **Backend Config** | [`server/.env.example`](./server/.env.example) | Complete | Template for teammates to configure their local MariaDB |
+| **Backend Config** | [`server/package.json`](./server/package.json) | Complete | Express, Sequelize, MySQL2, Zod, CORS, Dotenv, bcryptjs, and jsonwebtoken |
+| **Backend Config** | [`server/.env`](./server/.env) | Complete | MariaDB connection variables and local JWT signing secret |
+| **Backend Config** | [`server/src/config/db.js`](./server/src/config/db.js) | Complete | Sequelize MariaDB connection setup and automatic database creation |
+| **Backend Server** | [`server/src/server.js`](./server/src/server.js) | Complete | Associations, safe table sync, account ownership upgrade, seeding, LAN listener |
+| **Backend Server** | [`server/src/app.js`](./server/src/app.js) | Complete | Express app with public opportunity routes, auth routes, protected application routes, and error handler |
+| **Authentication** | [`server/src/models/account.model.js`](./server/src/models/account.model.js) | Complete | Separate login account table with unique email and password hash |
+| **Authentication** | [`server/src/controllers/auth.controller.js`](./server/src/controllers/auth.controller.js) | Complete | Registration, login, password hashing, JWT creation, and current-account response |
+| **Authentication** | [`server/src/middleware/requireAuth.js`](./server/src/middleware/requireAuth.js) | Complete | Verifies Bearer JWTs and attaches the account to the request |
+| **Authentication** | [`server/src/routes/auth.routes.js`](./server/src/routes/auth.routes.js) | Complete | `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me` |
+| **Application Ownership** | [`server/src/models/userApplication.model.js`](./server/src/models/userApplication.model.js) | Complete | Existing `users` application table with nullable `account_id` ownership link |
+| **Application Ownership** | [`server/src/routes/application.routes.js`](./server/src/routes/application.routes.js) | Complete | Requires authentication for listing and submitting applications |
+| **Database Models** | [`server/src/models/volunteer.model.js`](./server/src/models/volunteer.model.js) | Complete | Volunteer entity (`id`, `full_name`, `email`, `phone`) |
+| **Database Models** | [`server/src/models/event.model.js`](./server/src/models/event.model.js) | Complete | Event entity (`id`, `title`, `description`, `event_date`, `location`, `capacity`) |
+| **Database Models** | [`server/src/models/signup.model.js`](./server/src/models/signup.model.js) | Complete | Join table linking `volunteer_id` to `event_id` with unique constraint |
+| **Validation** | [`server/src/schemas/volunteer.schema.js`](./server/src/schemas/volunteer.schema.js) | Complete | Zod schema validating volunteer sign-up inputs |
+| **Middleware** | [`server/src/middleware/validate.js`](./server/src/middleware/validate.js) | Complete | Express middleware running Zod schema validation on `req.body` |
+| **Middleware** | [`server/src/middleware/errorHandler.js`](./server/src/middleware/errorHandler.js) | Complete | Global error handler with clean JSON responses and Sequelize error handling |
+| **Controllers** | [`server/src/controllers/volunteer.controller.js`](./server/src/controllers/volunteer.controller.js) | Complete | `signup` handler: capacity check, duplicate check, volunteer create, signup insert |
+| **Controllers** | [`server/src/controllers/event.controller.js`](./server/src/controllers/event.controller.js) | Complete | `getEvents` handler: queries events ordered by date |
+| **Routes** | [`server/src/routes/volunteer.routes.js`](./server/src/routes/volunteer.routes.js) | Complete | `POST /signup` with Zod validation middleware |
+| **Routes** | [`server/src/routes/event.routes.js`](./server/src/routes/event.routes.js) | Complete | `GET /` to fetch upcoming events |
+| **Frontend UI** | [`client/src/App.tsx`](./client/src/App.tsx) | Complete | React Router SPA with public browsing and guarded application routes |
+| **Frontend API** | [`client/src/api/api.ts`](./client/src/api/api.ts) | Complete | Opportunity, auth, and application requests with bearer-token support |
+| **Frontend Auth** | [`client/src/context/AuthContext.tsx`](./client/src/context/AuthContext.tsx) | Complete | Persists the JWT, restores `/me`, and exposes login/register/logout |
+| **Frontend Auth** | [`client/src/pages/LoginPage.tsx`](./client/src/pages/LoginPage.tsx) | Complete | Login form with Zod credential validation and return-path handling |
+| **Frontend Auth** | [`client/src/pages/RegisterPage.tsx`](./client/src/pages/RegisterPage.tsx) | Complete | Registration form with password confirmation and return-path handling |
+| **Frontend Form** | [`client/src/pages/SignUpPage.tsx`](./client/src/pages/SignUpPage.tsx) | Complete | Four-step application form with comprehensive client/server validation |
+| **Frontend Guard** | [`client/src/components/RequireAuth.tsx`](./client/src/components/RequireAuth.tsx) | Complete | Redirects logged-out users to login for signup and My Applications |
+| **Automated Testing** | [`E2E_TESTING.md`](./E2E_TESTING.md) | Complete | Instructions for repeatable browser and database smoke tests |
+| **Automated Testing** | [`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs) | Complete | Playwright workflow covering validation, auth, submission, reload, and read-back |
 
 ---
 
@@ -78,7 +80,21 @@ This document tracks the progress, architectural decisions, and current status o
 
 ---
 
-## 📝 Checkpoint Log
+## Checkpoint Log
+
+### [Checkpoint 7] Local Setup Automation & End-to-End Smoke Testing
+**Timestamp**: `2026-09-27`
+**Contributors**: User, GitHub Copilot
+
+#### What Was Accomplished:
+1. Added automatic creation of the configured local MariaDB database before Sequelize connects.
+2. Enabled LAN access for the backend and Vite development server so multiple devices on the same network can use the app.
+3. Added a root-level Playwright smoke test that clears browser state, exercises validation and authentication, submits an application, reloads the page, and confirms database-backed read-back.
+4. Added a startup check for the required `JWT_SECRET` setting and documented local setup in [`E2E_TESTING.md`](./E2E_TESTING.md).
+
+#### Verification:
+- `npm run test:e2e` passes.
+- `npm run build` passes in `client/`.
 
 ### [Checkpoint 5] Antigravity Handoff & GitHub Publishing Recovery
 **Timestamp**: `2026-09-22`

@@ -1,0 +1,12 @@
+{
+  "name": "volunteer-sign-up-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "node scripts/e2e-smoke.mjs",
+    "test:e2e:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

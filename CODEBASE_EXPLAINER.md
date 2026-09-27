@@ -1,10 +1,10 @@
-# 📖 Beginner's Guide: What Every File Does in This Project
+# Beginner's Guide: What Every File Does in This Project
 
 > **Why this file exists**: If you're feeling overwhelmed because you had AI generate files and now you're not sure what they do, **this guide is for you and your classmates**. It explains every single folder and file in plain English, with real-world analogies, so you can actually understand and explain your project to your teacher or team.
 
 ---
 
-## 🗺️ The 10,000-Foot View (How It All Connects)
+## The 10,000-Foot View (How It All Connects)
 
 Think of your web application like a **restaurant**:
 
@@ -35,7 +35,7 @@ Submitting an application requires a valid JWT. The backend stores that account'
 
 ---
 
-## 📂 The Complete Folder Walkthrough
+## The Complete Folder Walkthrough
 
 ---
 
@@ -49,6 +49,15 @@ Submitting an application requires a valid JWT. The backend stores that account'
   * **What it does**: Tracks what has been done step-by-step with timestamps so you and your group members always know what's finished and what's next.
 * **[`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md)** (This file!)
   * **What it is**: The friendly dictionary explaining every file in the codebase.
+* **[`package.json`](./package.json)**
+  * **What it is**: The root command center for the automated browser test.
+  * **What it does**: Provides `npm run test:e2e` and the one-time Playwright browser installation command.
+* **[`E2E_TESTING.md`](./E2E_TESTING.md)**
+  * **What it is**: The instructions for running the repeatable end-to-end smoke test.
+  * **What it does**: Explains setup, database requirements, and what the automated workflow verifies.
+* **[`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs)**
+  * **What it is**: A Playwright browser test that behaves like a real user.
+  * **What it does**: Starts missing development servers, clears browser state, tests validation, creates an account, submits an application, reloads the page, and verifies that MariaDB-backed data appears in My Applications.
 
 ---
 
@@ -71,9 +80,9 @@ This is a **Node.js + Express** server. It runs on `http://localhost:3000`.
   * **The secret credentials**: Holds database passwords, usernames, and port numbers.
   * *Why keep it separate?* You never want to hardcode database passwords in your code files.
 * **[`server/src/config/db.js`](./server/src/config/db.js)**
-  * **The database connector**: Initializes Sequelize with your credentials from `.env`. When the server starts, it uses this file to connect to MariaDB in XAMPP.
+  * **The database connector**: Initializes Sequelize with your credentials from `.env`. Before connecting, it creates the configured local database if it does not already exist.
 * **[`server/src/server.js`](./server/src/server.js)**
-  * **The ignition key**: The actual starting point of the backend. It tests MariaDB, links the account/application/opportunity models, creates missing tables, adds the `account_id` column to an existing applications table when needed, seeds starter data, and starts port 3000.
+  * **The ignition key**: The actual starting point of the backend. It checks the JWT configuration, tests MariaDB, links the account/application/opportunity models, creates missing tables, adds the `account_id` column to an existing applications table when needed, seeds starter data, and starts port 3000 on all local interfaces.
 * **[`server/src/app.js`](./server/src/app.js)**
   * **The Express setup**: Configures CORS and `express.json()`, mounts public opportunity routes, mounts authentication routes, protects application routes, and installs the global error handler.
 
@@ -136,7 +145,7 @@ This is a **React + TypeScript + Vite** app. It runs on `http://localhost:5173`.
 * **[`client/index.html`](./client/index.html)**
   * The single HTML page loaded by the browser. It has a single container: `<div id="root"></div>`. React takes over this `div` and paints the entire UI inside it.
 * **[`client/vite.config.ts`](./client/vite.config.ts)**
-  * Configures **Vite**, the high-speed development server and bundler.
+  * Configures **Vite**, the high-speed development server and bundler. It proxies `/api` requests to the backend and accepts connections from other devices on the local network.
 * **[`client/package.json`](./client/package.json)**
   * Lists frontend packages: `react`, `react-dom`, and Vite dev tools.
 * **[`client/eslint.config.js`](./client/eslint.config.js)**
@@ -164,7 +173,7 @@ This is a **React + TypeScript + Vite** app. It runs on `http://localhost:5173`.
 
 ---
 
-## 🔄 A Complete Data Walkthrough (Example)
+## A Complete Data Walkthrough (Example)
 
 When an authenticated volunteer submits the application form:
 
@@ -177,7 +186,7 @@ When an authenticated volunteer submits the application form:
 
 ---
 
-## 💡 Summary Cheat-Sheet for Presenting to Classmates
+## Summary Cheat-Sheet for Presenting to Classmates
 
 | Question | Simple Answer |
 |---|---|

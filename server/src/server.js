@@ -1,6 +1,6 @@
 import "dotenv/config";
 import app from "./app.js";
-import sequelize from "./config/db.js";
+import sequelize, { ensureDatabase } from "./config/db.js";
 
 // Original models
 import Event from "./models/event.model.js";
@@ -41,6 +41,11 @@ VolunteerOpportunity.hasMany(UserApplication, {
 // ── Seed helpers ──────────────────────────────────────────────────────────────
 
 const port = Number(process.env.PORT || 3000);
+const host = process.env.HOST || "0.0.0.0";
+
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is required in server/.env. Copy server/.env.example and set it before starting the server.");
+}
 
 async function seedInitialEvents() {
   const count = await Event.count();
@@ -115,6 +120,7 @@ async function ensureAccountIdColumn() {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 try {
+  await ensureDatabase();
   await sequelize.authenticate();
   console.log("✅ MariaDB database connection established successfully.");
 
@@ -127,8 +133,9 @@ try {
   await seedInitialEvents();
   await seedVolunteerOpportunities();
 
-  app.listen(port, () => {
+  app.listen(port, host, () => {
     console.log(`🚀 Server listening on http://localhost:${port}`);
+    console.log(`📱 LAN access enabled on port ${port} (use this computer's IP address).`);
   });
 } catch (error) {
   console.error("❌ Unable to connect to MariaDB database:", error.message);
