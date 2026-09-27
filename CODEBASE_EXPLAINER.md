@@ -64,6 +64,8 @@ Submitting an application requires a valid JWT. The backend stores that account'
 
 To enable administration, set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `server/.env`, then restart the backend. The startup process creates the account if it is missing or promotes the matching account to the `admin` role.
 
+The Admin Panel uses one tabbed dashboard: Opportunities contains CRUD controls, while Applications provides pending/approved/rejected filters, applicant search, 15-item pagination, expandable details, inline status updates, and deletion.
+
 ---
 
 ### 2. Backend Files (`server/`) — "The Engine & Kitchen"
@@ -174,7 +176,7 @@ This is a **React + TypeScript + Vite** app. It runs on `http://localhost:5173`.
 * **[`client/src/api/api.ts`](./client/src/api/api.ts)**
   * Centralizes fetch calls and attaches `Authorization: Bearer <jwt>` to auth-protected requests.
 * **[`client/src/index.css`](./client/src/index.css)**
-  * The CSS stylesheet controlling colors, fonts, margins, auth forms, and buttons.
+  * The shared Bayanihan design system controlling warm light/dark color tokens, Fraunces and Public Sans typography, woven texture accents, responsive layouts, auth forms, admin surfaces, and buttons.
 
 ---
 

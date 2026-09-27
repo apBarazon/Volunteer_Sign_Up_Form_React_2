@@ -23,10 +23,12 @@ function MyApplicationsPage() {
       {loadError && <p className="error">{loadError}</p>}
 
       {!loading && !loadError && applications.length === 0 && (
-        <p className="subtitle">
-          You haven't submitted any applications yet.{" "}
-          <Link to="/" className="link">Browse opportunities</Link> to get started.
-        </p>
+        <div className="empty-state">
+          <p className="eyebrow">Your journey starts here</p>
+          <h2>No applications yet</h2>
+          <p className="subtitle">You haven't submitted any applications yet.</p>
+          <Link to="/" className="btn btn-primary">Browse opportunities</Link>
+        </div>
       )}
 
       <div className="applications-list">

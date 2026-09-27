@@ -96,7 +96,7 @@ async function run() {
       const visibleErrors = await page.locator(".error").allTextContents();
       throw new Error(`Registration did not navigate to /signup (at ${page.url()}): ${visibleErrors.join(" | ") || "no visible error"}`);
     }
-    await page.getByText("Step 1 of 4").waitFor();
+    await page.getByRole("main").getByText("Step 1 of 4").waitFor();
 
     await page.getByRole("button", { name: /Next: Availability/ }).click();
     await page.getByText("First name is required.").waitFor();

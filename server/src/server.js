@@ -128,6 +128,16 @@ async function ensureAccountUsernameColumn() {
   }
 }
 
+async function ensureApplicationStatusColumn() {
+  const [columns] = await sequelize.query("SHOW COLUMNS FROM users LIKE 'status'");
+  if (columns.length === 0) {
+    await sequelize.query(
+      "ALTER TABLE users ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending'"
+    );
+    console.log("✅ Added application statuses.");
+  }
+}
+
 async function ensureAccountRoleColumn() {
   const [columns] = await sequelize.query("SHOW COLUMNS FROM accounts LIKE 'role'");
   if (columns.length === 0) {
@@ -171,6 +181,7 @@ try {
   // Synchronize missing tables without repeatedly rewriting existing constraints.
   await sequelize.sync();
   console.log("✅ Database tables synchronized.");
+  await ensureApplicationStatusColumn();
   await ensureAccountUsernameColumn();
   await ensureAccountRoleColumn();
   await ensureAccountIdColumn();

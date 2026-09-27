@@ -37,44 +37,53 @@ function HomePage() {
   });
 
   return (
-    <div className="page page-wide">
-      <h1 className="page-title">Make an Impact Today</h1>
-      <p className="page-subtitle">
+    <div className="page page-wide home-page">
+      <section className="home-hero">
+        <p className="eyebrow">Volunteer together</p>
+        <h1 className="page-title">Make an Impact Today</h1>
+        <p className="page-subtitle">
         Choose an available volunteer opportunity below and register to join our community initiatives.
-      </p>
+        </p>
+      </section>
 
-      <input
-        className="search-input"
-        placeholder="Search opportunities..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <section className="home-controls" aria-label="Opportunity filters">
+        <input
+          className="search-input"
+          placeholder="Search opportunities..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
 
-      <div className="filter-row">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            type="button"
-            className={`chip ${activeFilter === f ? "chip-active" : ""}`}
-            onClick={() => setActiveFilter(f)}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+        <div className="filter-row">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={`chip ${activeFilter === f ? "chip-active" : ""}`}
+              onClick={() => setActiveFilter(f)}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {loading && <p>Loading opportunities...</p>}
       {loadError && <p className="error">{loadError}</p>}
 
       <div className="card-grid">
-        {filtered.map((o) => (
-          <div className="opportunity-card" key={o.id}>
+        {filtered.map((o, index) => (
+          <div
+            className={`opportunity-card ${index === 0 ? "featured" : ""} category-${o.type.toLowerCase()}`}
+            key={o.id}
+          >
             <div className="opportunity-card-header">
               <span className="badge">{o.type.toUpperCase()}</span>
               <span className="spots-pill"> {o.spotsLeft} spots left</span>
             </div>
             <h3>{o.name}</h3>
             <p>{o.description}</p>
+            {index === 0 && <p className="featured-note">This is currently our highest-need opportunity.</p>}
             <button type="button" className="btn btn-primary btn-block" onClick={() => handleApply(o)}>
               Apply Now
             </button>

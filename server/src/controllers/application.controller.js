@@ -38,6 +38,7 @@ export async function getApplications(req, res, next) {
       volunteerId: app.volunteerId,
       volunteerName: app.opportunity?.name ?? "",
       volunteerType: app.opportunity?.type ?? "",
+      status: app.status,
     }));
 
     res.json(result);

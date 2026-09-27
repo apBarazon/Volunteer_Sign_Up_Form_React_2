@@ -101,6 +101,12 @@ UserApplication.init(
       defaultValue: false,
       field: "agree_terms",
     },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "pending",
+      validate: { isIn: [["pending", "approved", "rejected"]] },
+    },
     submittedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,

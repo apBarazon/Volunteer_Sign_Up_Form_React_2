@@ -143,8 +143,9 @@ function SignUpPage() {
   }
 
   return (
-    <div className="page">
-      <div className="card">
+    <div className="page signup-page">
+      <div className="signup-layout">
+        <main className="card signup-card">
         <div className="step-header">
           <p className="step-label">Step {step} of 4</p>
           <p className="role-label">
@@ -325,19 +326,17 @@ function SignUpPage() {
             <p className="subtitle">Please confirm your details before submitting.</p>
 
             <div className="review-box">
-              <p><strong>Role:</strong> {selectedOpportunity.name}</p>
-              <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
-              <p><strong>Email:</strong> {formData.email}</p>
-              <p><strong>Phone:</strong> {formData.phone}</p>
-              <p>
-                <strong>Availability:</strong>{" "}
-                {formData.availability.length > 0
-                  ? formData.availability.map(formatSlot).join(", ")
-                  : "None specified"}
-              </p>
-              <p><strong>Experience:</strong> {formData.experience || "None specified"}</p>
-              <p><strong>Skills:</strong> {formData.skills.length > 0 ? formData.skills.join(", ") : "None specified"}</p>
-              <p><strong>Heard about us via:</strong> {formData.heardAbout || "Not specified"}</p>
+              <div className="review-row"><strong>Role</strong><span>{selectedOpportunity.name}</span></div>
+              <div className="review-row"><strong>Name</strong><span>{formData.firstName} {formData.lastName}</span></div>
+              <div className="review-row"><strong>Email</strong><span>{formData.email}</span></div>
+              <div className="review-row"><strong>Phone</strong><span>{formData.phone}</span></div>
+              <div className="review-row">
+                <strong>Availability</strong>
+                <span>{formData.availability.length > 0 ? formData.availability.map(formatSlot).join(", ") : "None specified"}</span>
+              </div>
+              <div className="review-row"><strong>Experience</strong><span>{formData.experience || "None specified"}</span></div>
+              <div className="review-row"><strong>Skills</strong><span>{formData.skills.length > 0 ? formData.skills.join(", ") : "None specified"}</span></div>
+              <div className="review-row"><strong>Heard about us via</strong><span>{formData.heardAbout || "Not specified"}</span></div>
             </div>
 
             {submitError && <p className="error">{submitError}</p>}
@@ -357,6 +356,20 @@ function SignUpPage() {
             </div>
           </form>
         )}
+        </main>
+        <aside className="signup-summary">
+          <p className="eyebrow">Your application</p>
+          <h2>{selectedOpportunity.name}</h2>
+          <p className="subtitle">{selectedOpportunity.description}</p>
+          <div className="summary-divider" />
+          <p className="summary-step">Step {step} <span>of 4</span></p>
+          <p className="subtitle">
+            {step === 1 && "Tell us a little about yourself."}
+            {step === 2 && "Share when and how you can help."}
+            {step === 3 && "Add the details that complete your application."}
+            {step === 4 && "Review everything before you send it."}
+          </p>
+        </aside>
       </div>
     </div>
   );

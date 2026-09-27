@@ -26,8 +26,8 @@ function Navbar({ isDark, onToggleTheme }: NavbarProps) {
             <Link to="/register">Register</Link>
           </>
         )}
-        <button type="button" className="theme-toggle" onClick={onToggleTheme}>
-          {isDark ? "☀️ Light" : "🌙 Dark"}
+        <button type="button" className="theme-toggle" onClick={onToggleTheme} aria-label="Toggle color theme">
+          {isDark ? "Light mode" : "Dark mode"}
         </button>
       </div>
     </nav>

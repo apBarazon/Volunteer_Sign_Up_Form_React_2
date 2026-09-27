@@ -103,6 +103,7 @@ export type ApplicationRecord = {
   volunteerId: number;
   volunteerName: string;
   volunteerType: string;
+  status: "pending" | "approved" | "rejected";
 };
 
 export async function fetchApplications(): Promise<ApplicationRecord[]> {
@@ -163,4 +164,17 @@ export async function deleteAdminApplication(id: number) {
     headers: authHeaders(),
   });
   if (!res.ok) await parseError(res, "Failed to delete application.");
+}
+
+export async function updateAdminApplicationStatus(
+  id: number,
+  status: AdminApplication["status"],
+) {
+  const res = await fetch(`${BASE_URL}/admin/applications/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) await parseError(res, "Failed to update application status.");
+  return res.json() as Promise<{ id: number; status: AdminApplication["status"] }>;
 }

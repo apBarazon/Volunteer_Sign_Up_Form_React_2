@@ -55,6 +55,8 @@ This document tracks the progress, architectural decisions, and current status o
 | **Automated Testing** | [`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs) | Complete | Playwright workflow covering validation, auth, submission, reload, and read-back |
 | **Database Sync** | [`scripts/db-sync.mjs`](./scripts/db-sync.mjs) | Complete | Root commands for exporting and importing local MariaDB data |
 | **Administration** | [`client/src/pages/AdminPage.tsx`](./client/src/pages/AdminPage.tsx) | Complete | Admin-only opportunity CRUD and application management dashboard |
+| **Visual Design** | [`client/src/index.css`](./client/src/index.css) | Complete | Bayanihan theme with warm palette, typography, texture, responsive layout, and dark mode |
+| **Admin Applications** | [`client/src/pages/AdminPage.tsx`](./client/src/pages/AdminPage.tsx) | Complete | Tabbed application management with status filters, search, pagination, expansion, and status updates |
 
 ---
 
@@ -128,6 +130,16 @@ This document tracks the progress, architectural decisions, and current status o
 #### Verification:
 - Client production build passes.
 - Existing non-admin accounts remain blocked from admin endpoints.
+
+### [Checkpoint 10] Scalable Admin Application Management
+**Timestamp**: `2026-09-27`
+**Contributors**: User, GitHub Copilot
+
+#### What Was Accomplished:
+1. Split the Admin Panel into Opportunities and Applications tabs.
+2. Added persisted pending, approved, and rejected application statuses with a safe database migration.
+3. Added status filter chips, applicant name/email search, 15-item pagination, and expandable application details.
+4. Added inline admin status updates while preserving application deletion and opportunity capacity restoration.
 
 ### [Checkpoint 5] Antigravity Handoff & GitHub Publishing Recovery
 **Timestamp**: `2026-09-22`

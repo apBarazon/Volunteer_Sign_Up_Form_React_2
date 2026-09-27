@@ -12,3 +12,7 @@ export const updateOpportunitySchema = z
   .object(opportunityFields)
   .partial()
   .refine((value) => Object.keys(value).length > 0, "Provide at least one field to update.");
+
+export const applicationStatusSchema = z.object({
+  status: z.enum(["pending", "approved", "rejected"]),
+});

@@ -17,12 +17,25 @@ function toApplicationResponse(application) {
     skills: application.skills,
     heardAbout: application.heardAbout,
     agreeTerms: application.agreeTerms,
+    status: application.status,
     submittedAt: application.submittedAt,
     volunteerId: application.volunteerId,
     volunteerName: application.opportunity?.name ?? "",
     volunteerType: application.opportunity?.type ?? "",
     accountEmail: application.account?.email ?? null,
   };
+}
+
+export async function updateAdminApplicationStatus(req, res, next) {
+  try {
+    const application = await UserApplication.findByPk(req.params.id);
+    if (!application) return res.status(404).json({ message: "Application not found." });
+
+    await application.update({ status: req.validatedBody.status });
+    res.json({ id: application.id, status: application.status });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function listAdminOpportunities(_req, res, next) {
