@@ -1,3 +1,4 @@
+# End-to-end testing
 
 Run the full browser coverage suite with:
 
@@ -44,16 +45,6 @@ npm run test:e2e
 ```
 
 A successful run ends with `PASS`, followed by a cleanup message. Each run creates a unique temporary account and application, verifies the saved record, then deletes the test data and restores the opportunity capacity.
-
-Run the full browser coverage suite with:
-
-```powershell
-$env:E2E_ADMIN_EMAIL="realAdmin@example.com"
-$env:E2E_ADMIN_PASSWORD="your-local-admin-password"
-npm run test:e2e:full
-```
-
-The full suite covers public opportunity search and category filters, theme switching, opportunity lookup errors, registration and login validation, password visibility, protected-route redirects, logout, regular-user admin denial, all application wizard validation gates, back/clear navigation, application persistence, admin opportunity CRUD, application details/search/status/delete, and API authorization responses. It requires the local admin account configured in `server/.env`.
 
 ## Sync the local database between laptops
 

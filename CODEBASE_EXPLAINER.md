@@ -29,9 +29,9 @@ Think of your web application like a **restaurant**:
 
 ### Current User Flow
 
-The home page is public, so visitors can browse and search opportunities without an account. Clicking **Apply Now** stores the selected opportunity in React context and opens `/signup`. The route guard sends logged-out visitors to `/login`, preserving `/signup` as the return path. After registration or login, the user returns to the application form.
+The home page is public, so visitors can browse and search opportunities without an account. Clicking **Apply Now** checks an authenticated user's existing applications for that opportunity before opening `/signup`. A duplicate shows a message and a My Applications link instead of opening the form. Full opportunities disable the button. The route guard sends logged-out visitors to `/login`, preserving `/signup` as the return path. After registration or login, the user returns to the application form.
 
-Submitting an application requires a valid JWT. The backend stores that account's ID on the application row. The protected `/api/applications` query filters by that account ID, so **My Applications** shows only the current user's submissions.
+Submitting an application requires a valid JWT. The backend stores that account's ID on the application row, checks the account/opportunity pair for duplicates, and decrements capacity in a transaction. Successful submission shows a distinct confirmation screen before the user chooses My Applications or more opportunities. The protected `/api/applications` query filters by that account ID, so **My Applications** shows only the current user's submissions and displays Pending, Confirmed, or Cancelled status tags.
 
 ---
 
@@ -51,20 +51,26 @@ Submitting an application requires a valid JWT. The backend stores that account'
   * **What it is**: The friendly dictionary explaining every file in the codebase.
 * **[`package.json`](./package.json)**
   * **What it is**: The root command center for the automated browser test.
-  * **What it does**: Provides `npm run test:e2e`, `npm run db:export`, `npm run db:import`, and the one-time Playwright browser installation command.
+  * **What it does**: Provides `npm run test:e2e` for the short smoke test, `npm run test:e2e:full` for comprehensive headless coverage, `npm run test:e2e:headed` for a visible slowed-down run, database export/import commands, and the one-time Playwright browser installation command.
 * **[`E2E_TESTING.md`](./E2E_TESTING.md)**
   * **What it is**: The instructions for running the repeatable end-to-end smoke test.
   * **What it does**: Explains setup, database requirements, and what the automated workflow verifies.
 * **[`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs)**
   * **What it is**: A Playwright browser test that behaves like a real user.
   * **What it does**: Starts missing development servers, clears browser state, tests validation, creates an account, submits an application, reloads the page, verifies that MariaDB-backed data appears in My Applications, then removes the temporary account and restores opportunity capacity.
+* **[`scripts/e2e-comprehensive.mjs`](./scripts/e2e-comprehensive.mjs)**
+  * **What it is**: The complete Playwright browser workflow.
+  * **What it does**: Covers public browsing, authentication and guards, password visibility, duplicate prevention, wizard validation/navigation, loading and error states, persistence, admin CRUD, status actions, deletion protection, and cleanup.
+* **[`scripts/e2e-headed.mjs`](./scripts/e2e-headed.mjs)**
+  * **What it is**: The watchable E2E command wrapper.
+  * **What it does**: Runs the comprehensive suite in visible Chromium with slow actions and waits for Enter before closing.
 * **[`scripts/db-sync.mjs`](./scripts/db-sync.mjs)**
   * **What it is**: A local MariaDB export and import utility.
   * **What it does**: Reads the database settings from `server/.env`, uses the XAMPP MariaDB tools, exports data to `database/volunteer_app.sql`, and imports that file on another laptop.
 
 To enable administration, set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `server/.env`, then restart the backend. The startup process creates the account if it is missing or promotes the matching account to the `admin` role.
 
-The Admin Panel uses one tabbed dashboard: Opportunities contains CRUD controls, while Applications provides pending/approved/rejected filters, applicant search, 15-item pagination, expandable details, inline status updates, and deletion.
+The Admin Panel uses one tabbed dashboard: Opportunities contains CRUD controls, while Applications provides Pending/Confirmed/Cancelled filters, applicant search, 15-item pagination, expandable details, Approve/Reject/Delete actions, inline status updates, and deletion.
 
 ---
 
@@ -170,9 +176,11 @@ This is a **React + TypeScript + Vite** app. It runs on `http://localhost:5173`.
 * **[`client/src/pages/LoginPage.tsx`](./client/src/pages/LoginPage.tsx)** and **[`client/src/pages/RegisterPage.tsx`](./client/src/pages/RegisterPage.tsx)**
   * Render the credential forms and use the client Zod schema before calling the auth API.
 * **[`client/src/pages/SignUpPage.tsx`](./client/src/pages/SignUpPage.tsx)**
-  * The four-step application form. It remains an SPA view: moving between steps changes React state without a full page reload.
+  * The four-step application form with validation, visible submission errors, disabled `Submitting...` state, and a distinct success confirmation after the API accepts the application.
 * **[`client/src/pages/MyApplicationsPage.tsx`](./client/src/pages/MyApplicationsPage.tsx)**
-  * Fetches the authenticated user's applications using the bearer token and displays the returned records.
+  * Fetches the authenticated user's applications using the bearer token, displays loading/error states, and renders Pending, Confirmed, or Cancelled status tags.
+* **[`client/src/components/PasswordInput.tsx`](./client/src/components/PasswordInput.tsx)**
+  * Reusable login/registration password field with an accessible eye icon that toggles masked and visible text.
 * **[`client/src/api/api.ts`](./client/src/api/api.ts)**
   * Centralizes fetch calls and attaches `Authorization: Bearer <jwt>` to auth-protected requests.
 * **[`client/src/index.css`](./client/src/index.css)**
@@ -188,8 +196,10 @@ When an authenticated volunteer submits the application form:
 2. **Frontend Validation**: The client Zod schema checks names, email, phone, age, availability, experience, skills, and terms.
 3. **Authenticated Request**: `client/src/api/api.ts` sends the application and `Authorization: Bearer <jwt>` to `POST /api/applications`.
 4. **Backend Security**: `requireAuth` verifies the JWT and loads `req.account`; `validate(applicationSchema)` checks the request body.
-5. **Ownership**: The controller writes `account_id = req.account.id` with the application and decrements the opportunity's remaining spots in a transaction.
-6. **My Applications**: Later, `GET /api/applications` filters by that same account ID, so another account cannot see the record.
+5. **Duplicate and Capacity Checks**: The controller rejects an existing `{ account_id, volunteer_id }` pair and refuses full opportunities before writing.
+6. **Ownership and Capacity**: The controller writes `account_id = req.account.id` and decrements the opportunity's remaining spots in a transaction.
+7. **Confirmation**: The frontend shows a success screen with the submitted role before offering My Applications or more opportunities.
+8. **My Applications**: Later, `GET /api/applications` filters by that same account ID, so another account cannot see the record; each record includes its current status tag.
 
 ## Synchronizing Local Database Data
 

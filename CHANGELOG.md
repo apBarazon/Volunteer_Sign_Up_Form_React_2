@@ -57,10 +57,157 @@ This document tracks the progress, architectural decisions, and current status o
 | **Administration** | [`client/src/pages/AdminPage.tsx`](./client/src/pages/AdminPage.tsx) | Complete | Admin-only opportunity CRUD and application management dashboard |
 | **Visual Design** | [`client/src/index.css`](./client/src/index.css) | Complete | Bayanihan theme with warm palette, typography, texture, responsive layout, and dark mode |
 | **Admin Applications** | [`client/src/pages/AdminPage.tsx`](./client/src/pages/AdminPage.tsx) | Complete | Tabbed application management with status filters, search, pagination, expansion, and status updates |
+| **Application UX** | [`client/src/pages/HomePage.tsx`](./client/src/pages/HomePage.tsx), [`client/src/pages/SignUpPage.tsx`](./client/src/pages/SignUpPage.tsx), [`client/src/pages/MyApplicationsPage.tsx`](./client/src/pages/MyApplicationsPage.tsx) | Complete | Full-opportunity handling, duplicate prevention, success confirmation, status tags, and visible request states |
+| **Password UX** | [`client/src/components/PasswordInput.tsx`](./client/src/components/PasswordInput.tsx) | Complete | Accessible show/hide password control for login and registration |
+| **Full E2E Coverage** | [`scripts/e2e-comprehensive.mjs`](./scripts/e2e-comprehensive.mjs) | Complete | Public, authenticated, application, admin, error-state, cleanup, headless, and headed workflows |
 
 ---
 
-## [Checkpoint 6] Account Authentication & Per-User Applications
+## Checkpoint Log
+
+### Chronological Index
+1. [Checkpoint 1: Initial Backend Scaffolding & Data Layer](#checkpoint-1-initial-backend-scaffolding--data-layer)
+2. [Checkpoint 2: Frontend Client Initialized](#checkpoint-2-frontend-client-initialized-react--vite)
+3. [Checkpoint 3: Repository Hardening & Codebase Explainer Guide](#checkpoint-3-repository-hardening--codebase-explainer-guide)
+4. [Checkpoint 4: Full End-to-End Implementation](#checkpoint-4-full-end-to-end-implementation-controllers-routes-db-auto-sync--react-spa)
+5. [Checkpoint 5: Antigravity Handoff & GitHub Publishing Recovery](#checkpoint-5-antigravity-handoff--github-publishing-recovery)
+6. [Checkpoint 6: Account Authentication & Per-User Applications](#checkpoint-6-account-authentication--per-user-applications)
+7. [Checkpoint 7: Local Setup Automation & End-to-End Smoke Testing](#checkpoint-7-local-setup-automation--end-to-end-smoke-testing)
+8. [Checkpoint 8: Local Database Export and Import Commands](#checkpoint-8-local-database-export-and-import-commands)
+9. [Checkpoint 9: Admin Panel and Role-Protected CRUD](#checkpoint-9-admin-panel-and-role-protected-crud)
+10. [Checkpoint 10: Scalable Admin Application Management](#checkpoint-10-scalable-admin-application-management)
+11. [Checkpoint 11: Application Experience and Watchable E2E Testing](#checkpoint-11-application-experience-and-watchable-e2e-testing)
+
+### [Checkpoint 1] Initial Backend Scaffolding & Data Layer
+**Timestamp**: `2026-09-22 22:00:00 (GMT+8)`  
+**Contributors**: Claude (Architecture blueprint), GitHub Copilot (Scaffolding), Antigravity (Inspection & Checkpoint setup)
+
+#### What Was Accomplished:
+1. **Architecture Blueprint**:
+   - Claude generated [`volunteer-app-architecture.md`](./volunteer-app-architecture.md) defining the monorepo folder layout, MariaDB schema, REST routes, and build order.
+2. **Server Environment & Dependencies**:
+   - Initialized `server/` with `"type": "module"` in `package.json`.
+   - Installed `express`, `sequelize`, `mysql2`, `zod`, `cors`, and `dotenv`.
+   - Configured `.env` with default MariaDB settings on port 3306.
+3. **Database Layer (Sequelize)**:
+   - Configured DB connection in `server/src/config/db.js`.
+   - Created `Volunteer` model in `server/src/models/volunteer.model.js`.
+   - Created `Event` model in `server/src/models/event.model.js`.
+   - Created `Signup` join table model in `server/src/models/signup.model.js` with composite unique constraint on `(volunteer_id, event_id)` and foreign key cascade rules.
+   - Wired model associations (`hasMany` and `belongsTo`) inside `server/src/server.js`.
+4. **Validation Layer**:
+   - Defined `volunteerSignupSchema` in `server/src/schemas/volunteer.schema.js`.
+   - Implemented generic `validate(schema)` middleware in `server/src/middleware/validate.js`.
+5. **App & Server Skeleton**:
+   - Created `server/src/app.js` with CORS, JSON body parser, and `/api/health`.
+   - Created `server/src/server.js` to test DB connection and start listening on port 3000.
+
+#### Current Gaps / Incomplete Items:
+- `server/src/controllers/volunteer.controller.js` and `event.controller.js` are empty (`export {};`).
+- `server/src/routes/volunteer.routes.js` and `event.routes.js` are empty (`export {};`).
+- `server/src/middleware/errorHandler.js` is empty (`export {};`).
+- Routes and error handler are not yet imported or mounted in `server/src/app.js`.
+- MariaDB tables have not been created/synced yet (`sequelize.sync()` or migration script).
+- Frontend (`client/`) has not yet been initialized.
+
+#### Immediate Next Steps:
+1. Implement the controller methods:
+   - `getEvents` in `event.controller.js` to query available events.
+   - `signup` in `volunteer.controller.js` to handle volunteer creation/lookup, capacity checks, and signup record insertion.
+2. Implement route endpoints and mount them in `app.js`.
+3. Implement `errorHandler.js` to catch any database or server errors cleanly.
+4. Test backend endpoints with sample data.
+5. Scaffold the React frontend using Vite in `client/`.
+
+---
+
+> **Note for AI Assistants (Copilot / Antigravity / Claude)**:  
+> When updating this project, please:
+> 1. Add a new `### [Checkpoint N]` entry under the Checkpoint Log with the current timestamp.
+> 2. Update the **Component Status Board** table to reflect any files created, updated, or finished.
+
+### [Checkpoint 2] Frontend Client Initialized (React + Vite)
+**Timestamp**: `2026-09-22 22:12:00 (GMT+8)`  
+**Contributors**: User (Scaffolding Vite React), Antigravity (Verification & Checkpoint update)
+
+#### What Was Accomplished:
+1. **Frontend App Initialized**:
+   - Created `client/` directory with Vite + React 19.
+   - Initialized `client/package.json` with scripts (`dev`, `build`, `lint`, `preview`).
+   - Standard ESLint config (`eslint.config.js`) installed for React best practices.
+   - Tested production build (`vite build`), compiling successfully with zero errors.
+2. **Current Monorepo Layout**:
+   - Both `server/` (Node/Express) and `client/` (React/Vite) are now properly structured side-by-side as prescribed in [`volunteer-app-architecture.md`](./volunteer-app-architecture.md).
+
+#### Immediate Next Steps:
+1. Complete the backend API controllers and routes in `server/`.
+2. Connect database and verify endpoints.
+3. Install frontend dependencies (e.g. `zod` for shared schema validation) and build the sign-up UI components in `client/src/components/`.
+
+---
+
+### [Checkpoint 3] Repository Hardening & Codebase Explainer Guide
+**Timestamp**: `2026-09-22 22:30:00 (GMT+8)`  
+**Contributors**: User, Antigravity
+
+#### What Was Accomplished:
+1. **Codebase Explainer Guide**:
+   - Created [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) giving a thorough, plain-English breakdown of all files, MVC / Layered Architecture concepts, database models vs. validation schemas, and cheat-sheet answers for presentation.
+2. **Git Protection & Sanitization**:
+   - Created root [`.gitignore`](./.gitignore) to ensure `node_modules` (4,000+ files) and sensitive `.env` files are never pushed to GitHub.
+   - Created [`server/.env.example`](./server/.env.example) so classmates have an immediate template for configuring their own local MariaDB connection.
+   - Cleaned up git staging area so the repository is clean and ready to branch/publish.
+
+#### Immediate Next Steps:
+1. Publish/push branch to GitHub for team sharing.
+2. Implement controllers and routes in `server/`.
+3. Auto-sync tables with MariaDB via `sequelize.sync()`.
+4. Build the basic React sign-up form in `client/`.
+
+---
+
+### [Checkpoint 4] Full End-to-End Implementation: Controllers, Routes, DB Auto-Sync & React SPA
+**Timestamp**: `2026-09-22 23:15:00 (GMT+8)`  
+**Contributors**: Antigravity, User
+
+#### What Was Accomplished:
+1. **Backend Implementation**:
+   - Implemented `getEvents` in [`event.controller.js`](./server/src/controllers/event.controller.js).
+   - Implemented `signup` in [`volunteer.controller.js`](./server/src/controllers/volunteer.controller.js) with event existence verification, capacity limit check, duplicate prevention, and transactional record creation.
+   - Connected routes in [`event.routes.js`](./server/src/routes/event.routes.js) and [`volunteer.routes.js`](./server/src/routes/volunteer.routes.js).
+   - Implemented global error handling in [`errorHandler.js`](./server/src/middleware/errorHandler.js).
+   - Mounted routes & error handler in [`app.js`](./server/src/app.js).
+   - Configured `sequelize.sync({ alter: true })` in [`server.js`](./server/src/server.js) so tables are created automatically on MariaDB startup without typing SQL.
+   - Added automatic seeding of 3 realistic community events into MariaDB if the table is empty.
+2. **Frontend React SPA Built**:
+   - Installed `zod` and created client validation schema in `client/src/schemas/volunteer.schema.js`.
+   - Created API client in `client/src/api/volunteerApi.js` connecting to backend endpoints.
+   - Built `VolunteerForm.jsx` with input handling, inline error feedback, and a built-in educational **Live Data Inspector** (allows students/teachers to see React state & JSON payload in real time).
+   - Built `ConfirmationModal.jsx` for registration success details.
+   - Built modern, responsive styles in `client/src/App.css`.
+   - Passed all strict ESLint checks (`npm run lint` = 0 errors) and verified production build (`vite build` = 139ms).
+
+---
+
+### [Checkpoint 5] Antigravity Handoff & GitHub Publishing Recovery
+**Timestamp**: `2026-09-22`
+**Contributors**: User, GitHub Copilot
+
+#### What Was Accomplished:
+2. **GitHub Publishing Recovery**:
+   - Integrated the separately initialized remote history without losing the local UI implementation.
+   - Updated the published commit identity to use GitHub's no-reply address, keeping the user's personal email private.
+   - Successfully pushed the completed project to `origin/main`.
+   - Preserved the pre-email-fix local history on the `local-before-email-fix` branch.
+3. **Documentation**:
+   - Updated this changelog and [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) to reflect the handoff and current repository state.
+
+#### Current Status:
+- The working `main` branch is clean and synchronized with `origin/main`.
+- The application implementation is complete according to the Component Status Board above.
+- Future commits should use a GitHub no-reply email unless email privacy protection is intentionally disabled.
+
+### [Checkpoint 6] Account Authentication & Per-User Applications
 **Timestamp**: `2026-09-26`
 **Contributors**: User, GitHub Copilot
 
@@ -83,8 +230,6 @@ This document tracks the progress, architectural decisions, and current status o
    - Registration, login, `/me`, unauthenticated rejection, and account-scoped application retrieval were tested.
 
 ---
-
-## Checkpoint Log
 
 ### [Checkpoint 7] Local Setup Automation & End-to-End Smoke Testing
 **Timestamp**: `2026-09-27`
@@ -141,132 +286,20 @@ This document tracks the progress, architectural decisions, and current status o
 3. Added status filter chips, applicant name/email search, 15-item pagination, and expandable application details.
 4. Added inline admin status updates while preserving application deletion and opportunity capacity restoration.
 
-### [Checkpoint 5] Antigravity Handoff & GitHub Publishing Recovery
-**Timestamp**: `2026-09-22`
+### [Checkpoint 11] Application Experience and Watchable E2E Testing
+**Timestamp**: `2026-09-27`
 **Contributors**: User, GitHub Copilot
 
 #### What Was Accomplished:
-2. **GitHub Publishing Recovery**:
-   - Integrated the separately initialized remote history without losing the local UI implementation.
-   - Updated the published commit identity to use GitHub's no-reply address, keeping the user's personal email private.
-   - Successfully pushed the completed project to `origin/main`.
-   - Preserved the pre-email-fix local history on the `local-before-email-fix` branch.
-3. **Documentation**:
-   - Updated this changelog and [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) to reflect the handoff and current repository state.
+1. Added accessible show/hide password icons to login and registration fields.
+2. Disabled Apply Now for full opportunities with a muted `Full` state.
+3. Added duplicate-application checks before opening the form and server-side account/opportunity protection for race-safe enforcement.
+4. Added Pending, Confirmed, and Cancelled status tags plus admin Approve/Reject actions.
+5. Added a distinct post-submission success screen with role details and navigation actions.
+6. Added visible loading, disabled-submit, and error states for opportunity loading, application-list loading, and submission.
+7. Expanded Playwright coverage and added separate headless and visible browser commands.
 
-#### Current Status:
-- The working `main` branch is clean and synchronized with `origin/main`.
-- The application implementation is complete according to the Component Status Board above.
-- Future commits should use a GitHub no-reply email unless email privacy protection is intentionally disabled.
-
-### [Checkpoint 4] Full End-to-End Implementation: Controllers, Routes, DB Auto-Sync & React SPA
-**Timestamp**: `2026-09-22 23:15:00 (GMT+8)`  
-**Contributors**: Antigravity, User
-
-#### What Was Accomplished:
-1. **Backend Implementation**:
-   - Implemented `getEvents` in [`event.controller.js`](./server/src/controllers/event.controller.js).
-   - Implemented `signup` in [`volunteer.controller.js`](./server/src/controllers/volunteer.controller.js) with event existence verification, capacity limit check, duplicate prevention, and transactional record creation.
-   - Connected routes in [`event.routes.js`](./server/src/routes/event.routes.js) and [`volunteer.routes.js`](./server/src/routes/volunteer.routes.js).
-   - Implemented global error handling in [`errorHandler.js`](./server/src/middleware/errorHandler.js).
-   - Mounted routes & error handler in [`app.js`](./server/src/app.js).
-   - Configured `sequelize.sync({ alter: true })` in [`server.js`](./server/src/server.js) so tables are created automatically on MariaDB startup without typing SQL.
-   - Added automatic seeding of 3 realistic community events into MariaDB if the table is empty.
-2. **Frontend React SPA Built**:
-   - Installed `zod` and created client validation schema in `client/src/schemas/volunteer.schema.js`.
-   - Created API client in `client/src/api/volunteerApi.js` connecting to backend endpoints.
-   - Built `VolunteerForm.jsx` with input handling, inline error feedback, and a built-in educational **Live Data Inspector** (allows students/teachers to see React state & JSON payload in real time).
-   - Built `ConfirmationModal.jsx` for registration success details.
-   - Built modern, responsive styles in `client/src/App.css`.
-   - Passed all strict ESLint checks (`npm run lint` = 0 errors) and verified production build (`vite build` = 139ms).
-
----
-
-### [Checkpoint 3] Repository Hardening & Codebase Explainer Guide
-**Timestamp**: `2026-09-22 22:30:00 (GMT+8)`  
-**Contributors**: User, Antigravity
-
-#### What Was Accomplished:
-1. **Codebase Explainer Guide**:
-   - Created [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) giving a thorough, plain-English breakdown of all files, MVC / Layered Architecture concepts, database models vs. validation schemas, and cheat-sheet answers for presentation.
-2. **Git Protection & Sanitization**:
-   - Created root [`.gitignore`](./.gitignore) to ensure `node_modules` (4,000+ files) and sensitive `.env` files are never pushed to GitHub.
-   - Created [`server/.env.example`](./server/.env.example) so classmates have an immediate template for configuring their own local MariaDB connection.
-   - Cleaned up git staging area so the repository is clean and ready to branch/publish.
-
-#### Immediate Next Steps:
-1. Publish/push branch to GitHub for team sharing.
-2. Implement controllers and routes in `server/`.
-3. Auto-sync tables with MariaDB via `sequelize.sync()`.
-4. Build the basic React sign-up form in `client/`.
-
----
-
-### [Checkpoint 2] Frontend Client Initialized (React + Vite)
-**Timestamp**: `2026-09-22 22:12:00 (GMT+8)`  
-**Contributors**: User (Scaffolding Vite React), Antigravity (Verification & Checkpoint update)
-
-#### What Was Accomplished:
-1. **Frontend App Initialized**:
-   - Created `client/` directory with Vite + React 19.
-   - Initialized `client/package.json` with scripts (`dev`, `build`, `lint`, `preview`).
-   - Standard ESLint config (`eslint.config.js`) installed for React best practices.
-   - Tested production build (`vite build`), compiling successfully with zero errors.
-2. **Current Monorepo Layout**:
-   - Both `server/` (Node/Express) and `client/` (React/Vite) are now properly structured side-by-side as prescribed in [`volunteer-app-architecture.md`](./volunteer-app-architecture.md).
-
-#### Immediate Next Steps:
-1. Complete the backend API controllers and routes in `server/`.
-2. Connect database and verify endpoints.
-3. Install frontend dependencies (e.g. `zod` for shared schema validation) and build the sign-up UI components in `client/src/components/`.
-
----
-
-### [Checkpoint 1] Initial Backend Scaffolding & Data Layer
-**Timestamp**: `2026-09-22 22:00:00 (GMT+8)`  
-**Contributors**: Claude (Architecture blueprint), GitHub Copilot (Scaffolding), Antigravity (Inspection & Checkpoint setup)
-
-#### What Was Accomplished:
-1. **Architecture Blueprint**:
-   - Claude generated [`volunteer-app-architecture.md`](./volunteer-app-architecture.md) defining the monorepo folder layout, MariaDB schema, REST routes, and build order.
-2. **Server Environment & Dependencies**:
-   - Initialized `server/` with `"type": "module"` in `package.json`.
-   - Installed `express`, `sequelize`, `mysql2`, `zod`, `cors`, and `dotenv`.
-   - Configured `.env` with default MariaDB settings on port 3306.
-3. **Database Layer (Sequelize)**:
-   - Configured DB connection in `server/src/config/db.js`.
-   - Created `Volunteer` model in `server/src/models/volunteer.model.js`.
-   - Created `Event` model in `server/src/models/event.model.js`.
-   - Created `Signup` join table model in `server/src/models/signup.model.js` with composite unique constraint on `(volunteer_id, event_id)` and foreign key cascade rules.
-   - Wired model associations (`hasMany` and `belongsTo`) inside `server/src/server.js`.
-4. **Validation Layer**:
-   - Defined `volunteerSignupSchema` in `server/src/schemas/volunteer.schema.js`.
-   - Implemented generic `validate(schema)` middleware in `server/src/middleware/validate.js`.
-5. **App & Server Skeleton**:
-   - Created `server/src/app.js` with CORS, JSON body parser, and `/api/health`.
-   - Created `server/src/server.js` to test DB connection and start listening on port 3000.
-
-#### Current Gaps / Incomplete Items:
-- `server/src/controllers/volunteer.controller.js` and `event.controller.js` are empty (`export {};`).
-- `server/src/routes/volunteer.routes.js` and `event.routes.js` are empty (`export {};`).
-- `server/src/middleware/errorHandler.js` is empty (`export {};`).
-- Routes and error handler are not yet imported or mounted in `server/src/app.js`.
-- MariaDB tables have not been created/synced yet (`sequelize.sync()` or migration script).
-- Frontend (`client/`) has not yet been initialized.
-
-#### Immediate Next Steps:
-1. Implement the controller methods:
-   - `getEvents` in `event.controller.js` to query available events.
-   - `signup` in `volunteer.controller.js` to handle volunteer creation/lookup, capacity checks, and signup record insertion.
-2. Implement route endpoints and mount them in `app.js`.
-3. Implement `errorHandler.js` to catch any database or server errors cleanly.
-4. Test backend endpoints with sample data.
-5. Scaffold the React frontend using Vite in `client/`.
-
----
-
-> **Note for AI Assistants (Copilot / Antigravity / Claude)**:  
-> When updating this project, please:
-> 1. Add a new `### [Checkpoint N]` entry under the Checkpoint Log with the current timestamp.
-> 2. Update the **Component Status Board** table to reflect any files created, updated, or finished.
-
+#### Verification:
+- `npm run test:e2e:full` passes with comprehensive headless coverage.
+- `npm run test:e2e:headed` runs the same flow in visible, slowed-down Chromium and pauses after cleanup.
+- Client production build and diagnostics pass.
