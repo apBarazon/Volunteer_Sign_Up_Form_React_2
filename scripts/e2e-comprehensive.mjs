@@ -24,6 +24,9 @@ function readLocalEnvValue(name) {
 
 const adminEmail = process.env.E2E_ADMIN_EMAIL || process.env.ADMIN_EMAIL || readLocalEnvValue("ADMIN_EMAIL");
 const adminPassword = process.env.E2E_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || readLocalEnvValue("ADMIN_PASSWORD");
+const headed = process.env.E2E_HEADED === "true";
+const slowMo = Number(process.env.E2E_SLOW_MO || (headed ? 500 : 0));
+const keepOpen = process.env.E2E_KEEP_OPEN === "true";
 
 function startDevServer(directory) {
   const child = spawn("npm", ["run", "dev"], {
@@ -97,9 +100,7 @@ async function login(page, email, password) {
 async function logout(page) {
   await page.getByRole("button", { name: "Log out" }).click();
   await page.getByRole("link", { name: "Log in" }).waitFor();
-  if (await page.getByRole("link", { name: "My Applications" }).count()) {
-    throw new Error("My Applications remained visible after logout.");
-  }
+  await page.getByRole("link", { name: "My Applications", exact: true }).waitFor({ state: "detached" });
 }
 
 async function fillValidStepOne(page, email) {
@@ -119,6 +120,12 @@ async function openFirstOpportunity(page) {
   await card.getByRole("button", { name: "Apply Now" }).click();
   await expectUrl(page, /\/signup$/);
   return name;
+}
+
+async function waitBeforeClosing() {
+  if (!keepOpen) return;
+  console.log("E2E browser is still open. Press Enter in this terminal to close it.");
+  await new Promise((resolve) => process.stdin.once("data", resolve));
 }
 
 async function testHomeAndTheme(page) {
@@ -222,6 +229,11 @@ async function testRegistrationAndWizard(page, email, password) {
   if (!(await page.getByRole("link", { name: "My Applications" }).count())) throw new Error("Authenticated navbar is missing My Applications.");
   await page.goto(`${baseUrl}/my-applications`, { waitUntil: "networkidle" });
   await expectText(page, "No applications yet");
+  const applicationsErrorPage = await page.context().newPage();
+  await applicationsErrorPage.route("**/api/applications", (route) => route.fulfill({ status: 503, body: JSON.stringify({ message: "Applications unavailable" }), headers: { "Content-Type": "application/json" } }));
+  await applicationsErrorPage.goto(`${baseUrl}/my-applications`, { waitUntil: "networkidle" });
+  await applicationsErrorPage.getByRole("alert").waitFor();
+  await applicationsErrorPage.close();
   const duplicateResponse = await page.request.post(`${apiUrl}/api/auth/register`, {
     data: { email, password },
   });
@@ -277,11 +289,35 @@ async function testRegistrationAndWizard(page, email, password) {
   await page.locator('select[name="heardAbout"]').selectOption({ label: "School / University" });
   await page.locator('input[type="checkbox"]').last().check();
   await page.getByRole("button", { name: /Review Application/ }).click();
+  await page.route("**/api/applications", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({ status: 503, body: JSON.stringify({ message: "Submission service unavailable" }), headers: { "Content-Type": "application/json" } });
+      return;
+    }
+    await route.continue();
+  });
   await page.getByRole("button", { name: "Confirm & Submit" }).click();
+  await page.getByRole("alert").filter({ hasText: "Submission service unavailable" }).waitFor();
+  await page.unroute("**/api/applications");
+  await page.getByRole("button", { name: "Confirm & Submit" }).click();
+  await page.getByRole("heading", { name: "Thank you for signing up!" }).waitFor();
+  await page.getByText(opportunityName, { exact: true }).last().waitFor();
+  await page.getByRole("button", { name: "View My Applications" }).click();
   await expectUrl(page, /\/my-applications$/);
-  await page.locator(".application-card").filter({ hasText: "Automation Tester" }).first().waitFor();
+  const submittedCard = page.locator(".application-card").filter({ hasText: "Automation Tester" }).first();
+  await submittedCard.waitFor();
+  await submittedCard.getByText("Pending", { exact: true }).waitFor();
   await page.reload({ waitUntil: "networkidle" });
   await page.locator(".application-card").filter({ hasText: "Automation Tester" }).first().waitFor();
+
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  const appliedOpportunityCard = page.locator(".opportunity-card").filter({ hasText: opportunityName }).first();
+  await appliedOpportunityCard.getByRole("button", { name: "Apply Now" }).click();
+  await appliedOpportunityCard.getByText("You've already applied to this opportunity.").waitFor();
+  await appliedOpportunityCard.getByRole("link", { name: "View My Applications" }).waitFor();
+  if (await page.getByText("Step 1 of 4", { exact: true }).count()) {
+    throw new Error("Duplicate application opened the multi-step form.");
+  }
 }
 
 async function testAdmin(page, userEmail, userPassword) {
@@ -317,12 +353,13 @@ async function testAdmin(page, userEmail, userPassword) {
   const userApplication = applicationRows.filter({ hasText: userEmail });
   await userApplication.first().getByRole("button", { name: /Automation Tester/ }).click();
   await expectText(page, "Automated end-to-end test submission.");
-  await userApplication.first().locator("select").selectOption("approved");
+  await userApplication.first().getByRole("button", { name: "Approve", exact: true }).click();
   await expectText(page, "Application status updated.");
+  await userApplication.first().getByText("Confirmed", { exact: true }).waitFor();
   await page.getByPlaceholder("Search applicant name or email...").fill("not-a-real-applicant");
   await expectText(page, "No applications match these filters.");
   await page.getByPlaceholder("Search applicant name or email...").fill(userEmail);
-  await page.getByRole("button", { name: "rejected", exact: true }).click();
+  await page.getByRole("button", { name: "Cancelled", exact: true }).click();
   if ((await page.locator(".application-row").count()) !== 0) throw new Error("Rejected filter showed an approved application.");
   await page.getByRole("button", { name: "All", exact: true }).click();
 
@@ -358,7 +395,7 @@ async function testAdmin(page, userEmail, userPassword) {
 
 async function run() {
   await ensureServers();
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ headless: !headed, slowMo });
   const context = await browser.newContext();
   const page = await context.newPage();
   const userEmail = `e2e-comprehensive-${Date.now()}@example.com`;
@@ -389,6 +426,7 @@ async function run() {
         console.error(`WARNING: E2E cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
+    await waitBeforeClosing();
     await browser.close();
   }
 }

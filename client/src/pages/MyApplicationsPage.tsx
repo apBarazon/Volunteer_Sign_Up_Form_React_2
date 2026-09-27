@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchApplications, type ApplicationRecord } from "../api/api";
 
+function getStatusLabel(status: ApplicationRecord["status"]) {
+  return status === "approved" ? "Confirmed" : status === "rejected" ? "Cancelled" : "Pending";
+}
+
 function MyApplicationsPage() {
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,12 +19,12 @@ function MyApplicationsPage() {
   }, []);
 
   return (
-    <div className="page page-wide">
+    <div className="page page-wide" aria-busy={loading}>
       <h1 className="page-title">My Applications</h1>
       <p className="page-subtitle">A record of every volunteer application stored in your MySQL database.</p>
 
-      {loading && <p>Loading...</p>}
-      {loadError && <p className="error">{loadError}</p>}
+      {loading && <p className="loading-message" role="status" aria-live="polite">Loading applications...</p>}
+      {loadError && <p className="error" role="alert">{loadError}</p>}
 
       {!loading && !loadError && applications.length === 0 && (
         <div className="empty-state">
@@ -36,9 +40,10 @@ function MyApplicationsPage() {
           <div className="application-card" key={app.id}>
             <div className="opportunity-card-header">
               <span className="badge">{app.volunteerType.toUpperCase()}</span>
-              <span className="spots-pill">
-                Submitted {new Date(app.submittedAt).toLocaleDateString()}
-              </span>
+              <div className="application-meta">
+                <span className={`status-tag status-${app.status}`}>{getStatusLabel(app.status)}</span>
+                <span className="spots-pill">Submitted {new Date(app.submittedAt).toLocaleDateString()}</span>
+              </div>
             </div>
             <h3>{app.volunteerName}</h3>
             <p><strong>Applicant:</strong> {app.firstName} {app.lastName}</p>

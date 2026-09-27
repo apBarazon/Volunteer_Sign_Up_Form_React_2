@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
-import { fetchOpportunities } from "../api/api";
+import { fetchApplications, fetchOpportunities, type ApplicationRecord } from "../api/api";
+import { useAuth } from "../context/AuthContext";
 import type { VolunteerOpportunity } from "../types/VolunteerOpportunity";
+import { Link } from "react-router-dom";
 
 const FILTERS = ["All", "Education", "Environment", "Outreach"];
 
@@ -12,8 +14,12 @@ function HomePage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [checkingOpportunityId, setCheckingOpportunityId] = useState<number | null>(null);
+  const [duplicateApplication, setDuplicateApplication] = useState<ApplicationRecord | null>(null);
+  const [applyCheckError, setApplyCheckError] = useState("");
 
   const { setSelectedOpportunity } = useAppContext();
+  const { account } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,11 +29,31 @@ function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  function handleApply(opportunity: VolunteerOpportunity) {
-    // Store the chosen opportunity in Context so the unrelated
-    // SignUpPage can read it (same idea as UserContext in the mini activity).
-    setSelectedOpportunity(opportunity);
-    navigate("/signup");
+  async function handleApply(opportunity: VolunteerOpportunity) {
+    if (!account) {
+      setSelectedOpportunity(opportunity);
+      navigate("/signup");
+      return;
+    }
+
+    setCheckingOpportunityId(opportunity.id);
+    setDuplicateApplication(null);
+    setApplyCheckError("");
+    try {
+      const applications = await fetchApplications();
+      const existingApplication = applications.find((application) => application.volunteerId === opportunity.id);
+      if (existingApplication) {
+        setDuplicateApplication(existingApplication);
+        return;
+      }
+
+      setSelectedOpportunity(opportunity);
+      navigate("/signup");
+    } catch {
+      setApplyCheckError("Could not check your existing applications. Please try again.");
+    } finally {
+      setCheckingOpportunityId(null);
+    }
   }
 
   const filtered = opportunities.filter((o) => {
@@ -68,8 +94,8 @@ function HomePage() {
         </div>
       </section>
 
-      {loading && <p>Loading opportunities...</p>}
-      {loadError && <p className="error">{loadError}</p>}
+      {loading && <p className="loading-message" role="status" aria-live="polite">Loading opportunities...</p>}
+      {loadError && <p className="error" role="alert">{loadError}</p>}
 
       <div className="card-grid">
         {filtered.map((o, index) => (
@@ -84,8 +110,21 @@ function HomePage() {
             <h3>{o.name}</h3>
             <p>{o.description}</p>
             {index === 0 && <p className="featured-note">This is currently our highest-need opportunity.</p>}
-            <button type="button" className="btn btn-primary btn-block" onClick={() => handleApply(o)}>
-              Apply Now
+            {duplicateApplication?.volunteerId === o.id && (
+              <p className="application-notice">
+                You've already applied to this opportunity. <Link to="/my-applications">View My Applications</Link>
+              </p>
+            )}
+            {applyCheckError && checkingOpportunityId === null && duplicateApplication === null && (
+              <p className="error" role="alert">{applyCheckError}</p>
+            )}
+            <button
+              type="button"
+              className={`btn btn-block ${o.spotsLeft === 0 || duplicateApplication?.volunteerId === o.id ? "btn-full" : "btn-primary"}`}
+              disabled={o.spotsLeft === 0 || duplicateApplication?.volunteerId === o.id || checkingOpportunityId === o.id}
+              onClick={() => handleApply(o)}
+            >
+              {o.spotsLeft === 0 ? "Full" : duplicateApplication?.volunteerId === o.id ? "Already applied" : checkingOpportunityId === o.id ? "Checking..." : "Apply Now"}
             </button>
           </div>
         ))}

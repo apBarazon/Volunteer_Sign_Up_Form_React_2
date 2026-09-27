@@ -77,6 +77,15 @@ export async function submitApplication(req, res, next) {
       return res.status(404).json({ message: "Selected opportunity does not exist." });
     }
 
+    const existingApplication = await UserApplication.findOne({
+      where: { accountId: req.account.id, volunteerId },
+      transaction: t,
+    });
+    if (existingApplication) {
+      await t.rollback();
+      return res.status(409).json({ message: "You've already applied to this opportunity." });
+    }
+
     // 2. Check spots
     if (opportunity.spotsLeft <= 0) {
       await t.rollback();

@@ -24,6 +24,10 @@ type ApplicationStatus = AdminApplication["status"];
 const statusFilters: Array<"all" | ApplicationStatus> = ["pending", "approved", "rejected", "all"];
 const applicationsPerPage = 15;
 
+function getStatusLabel(status: ApplicationStatus) {
+  return status === "approved" ? "Confirmed" : status === "rejected" ? "Cancelled" : "Pending";
+}
+
 function AdminPage() {
   const [opportunities, setOpportunities] = useState<AdminOpportunity[]>([]);
   const [applications, setApplications] = useState<AdminApplication[]>([]);
@@ -236,7 +240,7 @@ function AdminPage() {
         <div className="application-controls">
           <input aria-label="Search applications" placeholder="Search applicant name or email..." value={applicationSearch} onChange={(event) => { setApplicationSearch(event.target.value); setApplicationPage(1); }} />
           <div className="status-filters" role="group" aria-label="Application status filter">
-            {statusFilters.map((status) => <button type="button" key={status} className={`chip ${statusFilter === status ? "chip-active" : ""}`} onClick={() => selectStatus(status)}>{status === "all" ? "All" : status}</button>)}
+            {statusFilters.map((status) => <button type="button" key={status} className={`chip ${statusFilter === status ? "chip-active" : ""}`} onClick={() => selectStatus(status)}>{status === "all" ? "All" : getStatusLabel(status)}</button>)}
           </div>
         </div>
         <div className="admin-list application-list">
@@ -246,11 +250,15 @@ function AdminPage() {
             return <article className={`admin-row application-row ${expanded ? "application-row-expanded" : ""}`} key={application.id}>
               <button type="button" className="application-summary" onClick={() => toggleApplication(application.id)} aria-expanded={expanded}>
                 <span><strong>{application.firstName} {application.lastName}</strong><small>{application.volunteerName} · {application.email}</small></span>
-                <span className={`status-tag status-${application.status}`}>{application.status}</span><span className="expand-mark" aria-hidden="true">{expanded ? "−" : "+"}</span>
+                <span className={`status-tag status-${application.status}`}>{getStatusLabel(application.status)}</span><span className="expand-mark" aria-hidden="true">{expanded ? "−" : "+"}</span>
               </button>
               {expanded && <div className="application-details">
                 <div><strong>Phone</strong><span>{application.phone}</span></div><div><strong>City / Age</strong><span>{application.city || "Not provided"} {application.age ? `· ${application.age}` : ""}</span></div><div><strong>Availability</strong><span>{application.availability.join(", ") || "None specified"}</span></div><div><strong>Skills</strong><span>{application.skills.join(", ") || "None specified"}</span></div><div><strong>Experience</strong><span>{application.experience || "None specified"}</span></div><div><strong>Heard about us</strong><span>{application.heardAbout || "Not specified"}</span></div>
-                <div className="application-actions"><label>Status<select value={application.status} onChange={(event) => changeApplicationStatus(application.id, event.target.value as ApplicationStatus)}><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label><button type="button" className="btn btn-danger" onClick={() => removeApplication(application.id)}>Delete application</button></div>
+                <div className="application-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => changeApplicationStatus(application.id, "approved")} disabled={application.status === "approved"}>Approve</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => changeApplicationStatus(application.id, "rejected")} disabled={application.status === "rejected"}>Reject</button>
+                  <button type="button" className="btn btn-danger" onClick={() => removeApplication(application.id)}>Delete application</button>
+                </div>
               </div>}
             </article>;
           })}

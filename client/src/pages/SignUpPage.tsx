@@ -32,6 +32,7 @@ function SignUpPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [submissionComplete, setSubmissionComplete] = useState(false);
 
   const { selectedOpportunity, setSubmittedApplication } = useAppContext();
   const navigate = useNavigate();
@@ -123,7 +124,7 @@ function SignUpPage() {
       }
       await submitApplication(opportunity.id, validation.data);
       setSubmittedApplication(formData); // save to Context, same idea as setUser(formData)
-      navigate("/my-applications");
+      setSubmissionComplete(true);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -146,6 +147,25 @@ function SignUpPage() {
     <div className="page signup-page">
       <div className="signup-layout">
         <main className="card signup-card">
+        {submissionComplete ? (
+          <div className="success-screen">
+            <div className="success-mark" aria-hidden="true">✓</div>
+            <p className="eyebrow">Application received</p>
+            <h1>Thank you for signing up!</h1>
+            <p className="success-message">
+              Your application for <strong>{opportunity.name}</strong> has been submitted successfully.
+            </p>
+            <div className="actions success-actions">
+              <button type="button" className="btn btn-primary" onClick={() => navigate("/my-applications")}>
+                View My Applications
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => navigate("/")}>
+                Browse more opportunities
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="step-header">
           <p className="step-label">Step {step} of 4</p>
           <p className="role-label">
@@ -321,7 +341,7 @@ function SignUpPage() {
         )}
         {/* ---------- Step 4: Review & Submit ---------- */}
         {step === 4 && (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} aria-busy={isSubmitting}>
             <h2>Review Your Application</h2>
             <p className="subtitle">Please confirm your details before submitting.</p>
 
@@ -339,7 +359,7 @@ function SignUpPage() {
               <div className="review-row"><strong>Heard about us via</strong><span>{formData.heardAbout || "Not specified"}</span></div>
             </div>
 
-            {submitError && <p className="error">{submitError}</p>}
+            {submitError && <p className="error" role="alert">{submitError}</p>}
 
             <div className="actions actions-spread">
               <button type="button" className="btn btn-secondary" onClick={handleBack}>
@@ -356,8 +376,10 @@ function SignUpPage() {
             </div>
           </form>
         )}
+          </>
+        )}
         </main>
-        <aside className="signup-summary">
+        {!submissionComplete && <aside className="signup-summary">
           <p className="eyebrow">Your application</p>
           <h2>{selectedOpportunity.name}</h2>
           <p className="subtitle">{selectedOpportunity.description}</p>
@@ -369,7 +391,7 @@ function SignUpPage() {
             {step === 3 && "Add the details that complete your application."}
             {step === 4 && "Review everything before you send it."}
           </p>
-        </aside>
+        </aside>}
       </div>
     </div>
   );

@@ -6,6 +6,14 @@ npm run test:e2e:full
 ```
 
 The full suite reads the local admin account from `server/.env` (or accepts `E2E_ADMIN_EMAIL` and `E2E_ADMIN_PASSWORD` overrides). It covers public opportunity loading/search/category filters, theme switching, opportunity lookup errors, registration and login validation including duplicate accounts, password visibility, protected-route redirects, logout, regular-user admin denial, empty applications, all application wizard validation gates, back/clear navigation, application persistence, admin opportunity CRUD and deletion protection, application details/search/status/delete, and API authorization responses.
+
+To watch the full suite interact with the app in a visible, slowed-down browser:
+
+```powershell
+npm run test:e2e:headed
+```
+
+The test cleans up its temporary account and application before waiting. Press Enter in the terminal when you are finished watching to close the browser.
 # End-to-end smoke test
 
 This test acts like a user in a real browser. It clears cookies and browser storage, checks the API and opportunity list, verifies form validation, creates a unique account, completes the four-step application, submits it, reloads the page, and confirms the saved application is returned from the local MariaDB-backed API.
