@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { authSchema } from "../schemas/auth.schema";
+import PasswordInput from "../components/PasswordInput";
 
 function LoginPage() {
   const { login } = useAuth();
@@ -48,12 +49,11 @@ function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <label htmlFor="login-password">Password</label>
-          <input
+          <PasswordInput
             id="login-password"
-            type="password"
             autoComplete="current-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
           />
           {error && <p className="error">{error}</p>}
           <button className="btn btn-primary btn-block" type="submit" disabled={isSubmitting}>

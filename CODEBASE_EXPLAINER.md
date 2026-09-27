@@ -1,6 +1,6 @@
 # Beginner's Guide: What Every File Does in This Project
 
-> **Why this file exists**: If you're feeling overwhelmed because you had AI generate files and now you're not sure what they do, **this guide is for you and your classmates**. It explains every single folder and file in plain English, with real-world analogies, so you can actually understand and explain your project to your teacher or team.
+> **Why this file exists**: It explains every single folder and file in plain English, with real-world analogies, so you can actually understand and explain your project to your teacher or team.
 
 ---
 

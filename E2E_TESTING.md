@@ -1,3 +1,11 @@
+
+Run the full browser coverage suite with:
+
+```powershell
+npm run test:e2e:full
+```
+
+The full suite reads the local admin account from `server/.env` (or accepts `E2E_ADMIN_EMAIL` and `E2E_ADMIN_PASSWORD` overrides). It covers public opportunity loading/search/category filters, theme switching, opportunity lookup errors, registration and login validation including duplicate accounts, password visibility, protected-route redirects, logout, regular-user admin denial, empty applications, all application wizard validation gates, back/clear navigation, application persistence, admin opportunity CRUD and deletion protection, application details/search/status/delete, and API authorization responses.
 # End-to-end smoke test
 
 This test acts like a user in a real browser. It clears cookies and browser storage, checks the API and opportunity list, verifies form validation, creates a unique account, completes the four-step application, submits it, reloads the page, and confirms the saved application is returned from the local MariaDB-backed API.
@@ -28,6 +36,16 @@ npm run test:e2e
 ```
 
 A successful run ends with `PASS`, followed by a cleanup message. Each run creates a unique temporary account and application, verifies the saved record, then deletes the test data and restores the opportunity capacity.
+
+Run the full browser coverage suite with:
+
+```powershell
+$env:E2E_ADMIN_EMAIL="realAdmin@example.com"
+$env:E2E_ADMIN_PASSWORD="your-local-admin-password"
+npm run test:e2e:full
+```
+
+The full suite covers public opportunity search and category filters, theme switching, opportunity lookup errors, registration and login validation, password visibility, protected-route redirects, logout, regular-user admin denial, all application wizard validation gates, back/clear navigation, application persistence, admin opportunity CRUD, application details/search/status/delete, and API authorization responses. It requires the local admin account configured in `server/.env`.
 
 ## Sync the local database between laptops
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { authSchema } from "../schemas/auth.schema";
+import PasswordInput from "../components/PasswordInput";
 
 function RegisterPage() {
   const { register } = useAuth();
@@ -53,20 +54,18 @@ function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <label htmlFor="register-password">Password</label>
-          <input
+          <PasswordInput
             id="register-password"
-            type="password"
             autoComplete="new-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
           />
           <label htmlFor="register-confirm-password">Confirm password</label>
-          <input
+          <PasswordInput
             id="register-confirm-password"
-            type="password"
             autoComplete="new-password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={setConfirmPassword}
           />
           {error && <p className="error">{error}</p>}
           <button className="btn btn-primary btn-block" type="submit" disabled={isSubmitting}>
