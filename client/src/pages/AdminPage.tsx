@@ -10,7 +10,7 @@ import {
   type AdminApplication,
   type AdminOpportunity,
 } from "../api/api";
-
+import { getOpportunityImageUrl, useFallbackImage } from "../utils/opportunityImage";
 type OpportunityForm = Omit<AdminOpportunity, "id">;
 
 const emptyForm: OpportunityForm = {
@@ -18,6 +18,7 @@ const emptyForm: OpportunityForm = {
   type: "",
   description: "",
   spotsLeft: 0,
+  imageUrl: "",
 };
 type AdminTab = "opportunities" | "applications";
 type ApplicationStatus = AdminApplication["status"];
@@ -71,11 +72,12 @@ function AdminPage() {
 
   function startEdit(opportunity: AdminOpportunity) {
     setEditingId(opportunity.id);
-    setForm({
+     setForm({
       name: opportunity.name,
       type: opportunity.type,
       description: opportunity.description,
       spotsLeft: opportunity.spotsLeft,
+      imageUrl: opportunity.imageUrl ?? "",
     });
     setNotice("");
   }
@@ -205,6 +207,11 @@ function AdminPage() {
             Spots left
             <input type="number" min="0" value={form.spotsLeft} onChange={(event) => updateField("spotsLeft", event.target.value)} required />
           </label>
+           <label className="admin-form-full">
+            Image URL
+            <input type="url" value={form.imageUrl ?? ""} onChange={(event) => updateField("imageUrl", event.target.value)} placeholder="https://example.com/photo.jpg" maxLength={255} />
+            {form.imageUrl?.trim() && <img className="admin-image-preview" src={form.imageUrl.trim()} alt="Preview of the opportunity" onError={useFallbackImage} />}
+          </label>
           <label className="admin-form-wide">
             Description
             <textarea rows={3} value={form.description} onChange={(event) => updateField("description", event.target.value)} />
@@ -214,8 +221,9 @@ function AdminPage() {
 
         <div className="admin-list">
           {opportunities.map((opportunity) => (
-            <article className="admin-row" key={opportunity.id}>
-              <div>
+                        <article className="admin-row" key={opportunity.id}>
+              <img className="admin-row-thumb" src={getOpportunityImageUrl(opportunity)} alt="" onError={useFallbackImage} />
+              <div className="admin-row-body">
                 <strong>{opportunity.name}</strong>
                 <span className="admin-row-meta">{opportunity.type} · {opportunity.spotsLeft} spots left</span>
                 <p>{opportunity.description}</p>

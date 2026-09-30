@@ -11,6 +11,7 @@ import {
   SKILL_OPTIONS,
   HEARD_ABOUT_OPTIONS,
 } from "../types/ApplicationFormData";
+import { getOpportunityImageUrl, useFallbackImage } from "../utils/opportunityImage";
 
 type Errors = Partial<Record<keyof ApplicationFormData, string>>;
 
@@ -167,10 +168,13 @@ function SignUpPage() {
         ) : (
           <>
         <div className="step-header">
-          <p className="step-label">Step {step} of 4</p>
-          <p className="role-label">
-            Role: <strong>{selectedOpportunity.name}</strong>
-          </p>
+    
+          <div className="step-header-text">
+            <p className="step-label">Step {step} of 4</p>
+            <p className="role-label">
+              Role: <strong>{selectedOpportunity.name}</strong>
+            </p>
+          </div>
         </div>
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${(step / 4) * 100}%` }} />
@@ -380,6 +384,14 @@ function SignUpPage() {
         )}
         </main>
         {!submissionComplete && <aside className="signup-summary">
+          <div className="summary-media">
+            <img
+              src={getOpportunityImageUrl(selectedOpportunity)}
+              onError={useFallbackImage}
+              alt={`${selectedOpportunity.name} volunteers in action`}
+              className="summary-image"
+            />
+          </div>
           <p className="eyebrow">Your application</p>
           <h2>{selectedOpportunity.name}</h2>
           <p className="subtitle">{selectedOpportunity.description}</p>

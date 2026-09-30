@@ -157,6 +157,7 @@ CREATE TABLE `volunteers` (
   `type` varchar(50) NOT NULL,
   `description` text DEFAULT NULL,
   `spots_left` int(11) NOT NULL DEFAULT 0,
+  `image_url` varchar(255) DEFAULT NULL,
   `created_at` datetime NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -168,7 +169,7 @@ CREATE TABLE `volunteers` (
 
 LOCK TABLES `volunteers` WRITE;
 /*!40000 ALTER TABLE `volunteers` DISABLE KEYS */;
-INSERT INTO `volunteers` VALUES (1,'Community Tutor','Education','Assist children and teens with after-school reading, mathematics, and general study support.',12,'2026-09-27 07:09:49'),(2,'Tree Planting & Clean-up','Environment','Join weekend local reforestation and neighborhood waste-reduction campaigns.',25,'2026-09-27 07:09:49'),(3,'Food Drive Logistics','Outreach','Help organize, pack, and distribute care packages and meals to families in need.',8,'2026-09-27 07:09:49');
+INSERT INTO `volunteers` VALUES (1,'Community Tutor','Education','Assist children and teens with after-school reading, mathematics, and general study support.',12,'2026-09-27 07:09:49','https://www.ivolunteer.com.ph/storage/event_images/event_57af8928395adef58247585e4f62e341.png'),(2,'Tree Planting & Clean-up','Environment','Join weekend local reforestation and neighborhood waste-reduction campaigns.',25,'2026-09-27 07:09:49','https://tzuchi.org.ph/assets/news-page/images/IMG_9434.jpg'),(3,'Food Drive Logistics','Outreach','Help organize, pack, and distribute care packages and meals to families in need.',8,'2026-09-27 07:09:49','https://bacoor.gov.ph/wp-content/uploads/2018/07/37241386_1849153988478873_6581947676433055744_o.jpg');
 /*!40000 ALTER TABLE `volunteers` ENABLE KEYS */;
 UNLOCK TABLES;
 

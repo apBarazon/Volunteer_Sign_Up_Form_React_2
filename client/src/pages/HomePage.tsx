@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import type { VolunteerOpportunity } from "../types/VolunteerOpportunity";
 import { Link } from "react-router-dom";
 
+import { getOpportunityImageUrl, useFallbackImage } from "../utils/opportunityImage";
 const FILTERS = ["All", "Education", "Environment", "Outreach"];
 
 function HomePage() {
@@ -103,6 +104,15 @@ function HomePage() {
             className={`opportunity-card ${index === 0 ? "featured" : ""} category-${o.type.toLowerCase()}`}
             key={o.id}
           >
+            <div className="opportunity-card-media">
+               <img
+                src={getOpportunityImageUrl(o)}
+                onError={useFallbackImage}
+                alt={`${o.name} volunteers in action`}
+                className="opportunity-card-image"
+                loading="lazy"
+              />
+            </div>
             <div className="opportunity-card-header">
               <span className="badge">{o.type.toUpperCase()}</span>
               <span className="spots-pill"> {o.spotsLeft} spots left</span>
@@ -119,6 +129,7 @@ function HomePage() {
               <p className="error" role="alert">{applyCheckError}</p>
             )}
             <button
+            style={{marginTop:"15px"}}
               type="button"
               className={`btn btn-block ${o.spotsLeft === 0 || duplicateApplication?.volunteerId === o.id ? "btn-full" : "btn-primary"}`}
               disabled={o.spotsLeft === 0 || duplicateApplication?.volunteerId === o.id || checkingOpportunityId === o.id}

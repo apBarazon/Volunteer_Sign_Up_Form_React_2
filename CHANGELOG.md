@@ -19,8 +19,8 @@ This document tracks the progress, architectural decisions, and current status o
 
 | Layer | File / Feature | Status | Description |
 |---|---|---|---|
-| **Architecture** | [`volunteer-app-architecture.md`](./volunteer-app-architecture.md) | Complete | Blueprint & specifications for the entire stack |
-| **Documentation** | [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) | Complete | Plain-English beginner guide explaining every file & concept |
+| **Architecture** | [`volunteer-app-architecture.md`](./volunteer-app-architecture.md) | Complete | Current architecture: real folder layout, tables, REST routes, auth/admin flow, and photo handling (rewritten in Checkpoint 14) |
+| **Documentation** | [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) | Complete | Plain-English beginner guide explaining every file & concept, including admin, photos, and the redesign |
 | **Git Config** | [`.gitignore`](./.gitignore) | Complete | Root ignore rules (prevents tracking `node_modules` and `.env`) |
 | **Backend Config** | [`server/.env.example`](./server/.env.example) | Complete | Template for teammates to configure their local MariaDB |
 | **Backend Config** | [`server/package.json`](./server/package.json) | Complete | Express, Sequelize, MySQL2, Zod, CORS, Helmet, Dotenv, bcryptjs, and jsonwebtoken |
@@ -55,11 +55,17 @@ This document tracks the progress, architectural decisions, and current status o
 | **Automated Testing** | [`scripts/e2e-smoke.mjs`](./scripts/e2e-smoke.mjs) | Complete | Playwright workflow covering validation, auth, submission, reload, and read-back |
 | **Database Sync** | [`scripts/db-sync.mjs`](./scripts/db-sync.mjs) | Complete | Root commands for exporting and importing local MariaDB data |
 | **Administration** | [`client/src/pages/AdminPage.tsx`](./client/src/pages/AdminPage.tsx) | Complete | Admin-only opportunity CRUD and application management dashboard |
-| **Visual Design** | [`client/src/index.css`](./client/src/index.css) | Complete | Bayanihan theme with warm palette, typography, texture, responsive layout, and dark mode |
+| **Visual Design** | [`client/src/index.css`](./client/src/index.css) | Complete | Redesigned teal/sage/amber theme ("Signify"), circle-pattern background, full-bleed photo cards, flat-style override block, responsive layout, and dark mode |
 | **Admin Applications** | [`client/src/pages/AdminPage.tsx`](./client/src/pages/AdminPage.tsx) | Complete | Tabbed application management with status filters, search, pagination, expansion, and status updates |
 | **Application UX** | [`client/src/pages/HomePage.tsx`](./client/src/pages/HomePage.tsx), [`client/src/pages/SignUpPage.tsx`](./client/src/pages/SignUpPage.tsx), [`client/src/pages/MyApplicationsPage.tsx`](./client/src/pages/MyApplicationsPage.tsx) | Complete | Full-opportunity handling, duplicate prevention, success confirmation, status tags, and visible request states |
 | **Password UX** | [`client/src/components/PasswordInput.tsx`](./client/src/components/PasswordInput.tsx) | Complete | Accessible show/hide password control for login and registration |
 | **Full E2E Coverage** | [`scripts/e2e-comprehensive.mjs`](./scripts/e2e-comprehensive.mjs) | Complete | Public, authenticated, application, admin, error-state, cleanup, headless, and headed workflows |
+| **Opportunity Photos** | [`server/src/models/volunteerOpportunity.model.js`](./server/src/models/volunteerOpportunity.model.js) | Complete | New nullable `imageUrl` field mapped to the `image_url` column on `volunteers` |
+| **Opportunity Photos** | [`server/src/schemas/admin.schema.js`](./server/src/schemas/admin.schema.js) | Complete | Optional `imageUrl` validation: blank becomes `NULL`, otherwise `http(s)://` only, 255 characters max |
+| **Opportunity Photos** | [`client/src/utils/opportunityImage.ts`](./client/src/utils/opportunityImage.ts) | Complete | `getOpportunityImageUrl()` and `useFallbackImage` show a built-in "No image yet" placeholder for missing or broken URLs |
+| **Opportunity Photos** | [`client/src/types/VolunteerOpportunity.ts`](./client/src/types/VolunteerOpportunity.ts) | Complete | Added `imageUrl: string \| null` |
+| **Visual Design** | [`client/src/components/Navbar.tsx`](./client/src/components/Navbar.tsx) | Complete | Uses `NavLink` with an active-page highlight; brand text is now "Signify" |
+| **Database** | [`database/volunteer_app.sql`](./database/volunteer_app.sql) | Complete | Export now includes `volunteers.image_url` and photo URLs for the three seeded opportunities |
 
 ---
 
@@ -79,6 +85,7 @@ This document tracks the progress, architectural decisions, and current status o
 11. [Checkpoint 11: Application Experience and Watchable E2E Testing](#checkpoint-11-application-experience-and-watchable-e2e-testing)
 12. [Checkpoint 12: Security Regression E2E Coverage](#checkpoint-12-security-regression-e2e-coverage)
 13. [Checkpoint 13: Smart Feature-Matrix E2E Coverage](#checkpoint-13-smart-feature-matrix-e2e-coverage)
+14. [Checkpoint 14: Visual Redesign, Opportunity Photos, and Documentation Sync](#checkpoint-14-visual-redesign-opportunity-photos-and-documentation-sync)
 
 ### [Checkpoint 1] Initial Backend Scaffolding & Data Layer
 **Timestamp**: `2026-09-22 22:00:00 (GMT+8)`  
@@ -332,3 +339,41 @@ This document tracks the progress, architectural decisions, and current status o
 
 #### Verification:
 - `npm run test:e2e:full` passes with the expanded feature matrix and cleanup workflow.
+
+### [Checkpoint 14] Visual Redesign, Opportunity Photos, and Documentation Sync
+**Timestamp**: `2026-09-28` (code changes), documentation synchronized `2026-09-30`  
+**Contributors**: User, Claude (documentation sync and E2E review)
+
+#### What Was Accomplished:
+1. **Overall Design Refresh**:
+   - Replaced the warm cream/brown palette with a teal, sage, and amber theme (`--primary: #1b6b73`, `--accent: #e8a33d`) with matching dark mode tokens in [`index.css`](./client/src/index.css).
+   - Added a fixed circle-pattern background (inline SVG, separate light and dark variants) with a soft fade layer so content stays readable.
+   - Rebranded the navbar from "VolunteerPortal" to **Signify** and switched navigation links to `NavLink` so the current page is highlighted.
+   - Added a **flat-style override block** at the very bottom of `index.css` (no shadows, no gradients, no hover lift, one small corner radius for buttons/tabs/chips). It must stay last in the file so it wins over earlier rules.
+   - Turned the Home page opportunity cards into full-bleed photo cards with a dark gradient behind the text.
+   - Added a photo to the sidebar summary on the application form and restructured the step header (`step-header-text`).
+2. **Opportunity Photos (URL-based)**:
+   - Admins paste an **Image URL** in the Admin Panel opportunity form; a live preview appears under the field, and each admin row shows a thumbnail.
+   - Photos are hotlinked, not uploaded: only the URL string is stored (`volunteers.image_url`, `VARCHAR(255)`, nullable). There is no file-upload endpoint or image storage.
+   - The server validates the field with Zod: blank clears it (stored as `NULL`), anything else must start with `http://` or `https://`.
+   - Missing or broken URLs fall back to a built-in "No image yet" placeholder through [`opportunityImage.ts`](./client/src/utils/opportunityImage.ts).
+3. **Database Changes**:
+   - Added the `image_url` column to the `volunteers` (opportunities) table in the Sequelize model and in [`database/volunteer_app.sql`](./database/volunteer_app.sql).
+   - The three seeded opportunities in the SQL export now have photo URLs.
+4. **Documentation Sync**:
+   - Rewrote [`volunteer-app-architecture.md`](./volunteer-app-architecture.md) (it still described the original events/volunteers/signups plan) so it matches the real schema, routes, auth/admin flow, and folder layout.
+   - Updated [`CODEBASE_EXPLAINER.md`](./CODEBASE_EXPLAINER.md) with the admin files, opportunity controller/routes, photo pipeline, new client files, and the redesign.
+   - Updated [`E2E_TESTING.md`](./E2E_TESTING.md) to explain what the smoke test is, how it differs from the full suite, and what must be true before it passes.
+
+#### Verification:
+- `tsc -b` (client TypeScript check) passes with the new `imageUrl` field and photo components.
+- Every server `.js` file passes `node --check`.
+- The smoke and full E2E selectors were reviewed against the redesigned pages. Nothing they rely on was renamed or removed (`.opportunity-card`, `Apply Now`, `.slot-btn`, form `name` attributes, `.admin-form` input order, `.admin-row`, `Toggle color theme`). The new Image URL input sits after the existing Name, Type, and Spots inputs, so index-based fills still hit the right fields.
+- The Playwright suites themselves were **not executed** during this update because they need MariaDB and both dev servers. Please run `npm run test:e2e` and `npm run test:e2e:full` on a machine with XAMPP running and record the result here.
+
+#### Known Issues / Follow-ups:
+- **Existing databases need the new column.** `server.js` calls `sequelize.sync()` without `alter`, which creates missing tables but does not add columns. The other columns are added by `ensure...Column()` helpers, and there is no helper for `image_url`. On a database created before this checkpoint, `GET /api/opportunities` fails with an unknown-column error until the column exists, which also breaks the smoke test. Fix by running `npm run db:import` (the dump includes the column) or `ALTER TABLE volunteers ADD COLUMN image_url VARCHAR(255) NULL;`, or by adding an `ensureOpportunityImageColumn()` helper next to the others in `server.js`.
+- Fresh databases seed the three starter opportunities **without** photos (`seedVolunteerOpportunities()` does not set `imageUrl`), so they show the placeholder until an admin adds URLs.
+- `client/public/images/volunteerbg.png` (about 500 KB) is not referenced anywhere in the code.
+- `client/index.html` still has the page title "VolunteerPortal | Community in action" while the navbar says "Signify".
+- `useFallbackImage` is a plain event handler but its `use...` name looks like a React hook; renaming it (for example `handleImageError`) avoids confusing tooling and readers.

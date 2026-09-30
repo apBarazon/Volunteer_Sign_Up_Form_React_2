@@ -34,6 +34,12 @@ VolunteerOpportunity.init(
       defaultValue: 0,
       field: "spots_left",
     },
+    imageUrl: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      defaultValue: null,
+      field: "image_url",
+    },
   },
   {
     sequelize,

@@ -1,191 +1,177 @@
-# Volunteer Sign-Up App — Architecture Plan
+# Volunteer Sign-Up App — Architecture
 
-A high-level blueprint you can hand to GitHub Copilot (or any AI pair-programmer) in VS Code. Copilot works best when it can see this whole file, so keep it in your repo root as `ARCHITECTURE.md`.
+This document describes the application **as it is built today** (last synchronized in [Checkpoint 14](./CHANGELOG.md)). It began as the original planning blueprint (events, volunteers, and signups tables); the notes at the end explain which parts of that plan are still present as legacy code.
 
 ## 1. Tech Stack
 
-| Layer | Choice | Why |
+| Layer | Choice | Notes |
 |---|---|---|
-| Frontend | React (Vite) | Fast dev server, simple setup |
-| Backend | Node.js + Express | Pairs naturally with React, huge ecosystem, easy for Copilot to scaffold |
-| Database | MariaDB (local) | You already chose this |
-| ORM | Sequelize | Mature MariaDB/MySQL support, migrations, model validation |
-| Validation | Zod | Used on both the API (server-side) and forms (client-side) |
-| API style | REST (JSON) | Simplest to reason about for a small form app |
-
-You didn't mention a backend framework, so Express is the default assumption here — it's the most common companion to a React + MariaDB stack and Copilot has the most training data on it. Say the word if you'd rather use Fastify or NestJS instead.
+| Frontend | React 18 + TypeScript (Vite), React Router 6 | SPA on port 5173; Vite proxies `/api` to the backend |
+| Backend | Node.js + Express (ES Modules) | REST/JSON API on port 3000, also listening on the LAN |
+| Database | MariaDB (local, via XAMPP) | Database `volunteer_app`, created automatically if missing |
+| ORM | Sequelize | `sequelize.sync()` creates missing tables; small startup helpers add newer columns |
+| Validation | Zod | Client schemas in `client/src/schemas/`, server schemas in `server/src/schemas/` |
+| Auth | bcryptjs + JSON Web Tokens | 7-day bearer tokens; roles `user` and `admin` |
+| Security | Helmet + restricted CORS | Allowed origins come from `FRONTEND_ORIGINS` |
+| Testing | Playwright (root `scripts/`) | Smoke test, comprehensive suite, and headed runner |
 
 ## 2. Project Folder Structure
 
-Monorepo with two top-level folders — keeps frontend and backend independent but easy to manage together.
-
 ```
-volunteer-app/
-├── client/                        # React frontend
+Volunteer_Sign_Up_Form_React/
+├── client/                            # React + TypeScript frontend
+│   ├── public/
+│   │   ├── favicon.svg
+│   │   └── images/volunteerbg.png     # currently unreferenced
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── VolunteerForm.jsx
-│   │   │   └── ConfirmationModal.jsx
-│   │   ├── pages/
-│   │   │   └── SignUpPage.jsx
-│   │   ├── schemas/
-│   │   │   └── volunteer.schema.js   # Zod schema, shared shape with server
-│   │   ├── api/
-│   │   │   └── volunteerApi.js       # fetch/axios calls to backend
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
+│   │   ├── api/api.ts                 # all fetch calls, attaches the bearer token
+│   │   ├── components/                # Navbar, PasswordInput, RequireAuth, RequireAdmin
+│   │   ├── context/                   # AuthContext (JWT + account), AppContext (selected opportunity)
+│   │   ├── pages/                     # Home, Login, Register, SignUp, MyApplications, Admin
+│   │   ├── schemas/                   # application.schema.ts, auth.schema.ts (Zod)
+│   │   ├── types/                     # VolunteerOpportunity, ApplicationFormData
+│   │   ├── utils/opportunityImage.ts  # photo URL + placeholder/fallback helpers
+│   │   ├── App.tsx, main.tsx, index.css
+│   ├── index.html, package.json, tsconfig.json, vite.config.ts
 │
-├── server/                        # Express backend
+├── server/                            # Express backend
 │   ├── src/
-│   │   ├── config/
-│   │   │   └── db.js                 # Sequelize connection setup
-│   │   ├── models/
-│   │   │   ├── volunteer.model.js
-│   │   │   ├── event.model.js
-│   │   │   └── signup.model.js
-│   │   ├── schemas/
-│   │   │   └── volunteer.schema.js   # Zod validation, mirrors client schema
-│   │   ├── routes/
-│   │   │   ├── volunteer.routes.js
-│   │   │   └── event.routes.js
-│   │   ├── controllers/
-│   │   │   ├── volunteer.controller.js
-│   │   │   └── event.controller.js
-│   │   ├── middleware/
-│   │   │   ├── validate.js           # generic Zod-validation middleware
-│   │   │   └── errorHandler.js
-│   │   ├── app.js                    # Express app setup
-│   │   └── server.js                 # entry point (listens on port)
-│   ├── migrations/                   # Sequelize migrations
-│   ├── .env                          # DB credentials, port, etc.
+│   │   ├── config/db.js               # Sequelize connection + ensureDatabase()
+│   │   ├── models/                    # account, userApplication, volunteerOpportunity (+ legacy volunteer, event, signup)
+│   │   ├── schemas/                   # application, auth, admin (+ legacy volunteer)
+│   │   ├── routes/                    # auth, admin, application, opportunity (+ legacy volunteer, event)
+│   │   ├── controllers/               # auth, admin, application, opportunity (+ legacy volunteer, event)
+│   │   ├── middleware/                # requireAuth (+ requireAdmin), validate, errorHandler
+│   │   ├── app.js                     # Express setup and route mounting
+│   │   └── server.js                  # startup: sync, column upgrades, admin bootstrap, seeding, listen
+│   ├── migrations/                    # empty (.gitkeep); upgrades are done in server.js
+│   ├── .env / .env.example            # DB settings, JWT_SECRET, FRONTEND_ORIGINS, ADMIN_* settings
 │   └── package.json
 │
-└── README.md
+├── database/volunteer_app.sql         # exported data (npm run db:export / db:import)
+├── scripts/                           # e2e-smoke, e2e-comprehensive, e2e-headed, db-sync
+├── CHANGELOG.md, CODEBASE_EXPLAINER.md, E2E_TESTING.md, volunteer-app-architecture.md
+└── package.json                       # root scripts for tests and database sync
 ```
 
-**Why split `client/` and `server/`:** it's the clearest mental model for a beginner, each half has its own `package.json` and dependencies, and you can deploy or run them independently later.
+**Why split `client/` and `server/`:** each half has its own `package.json` and dependencies, so the interface and the server logic stay independent.
 
 ## 3. Database Schema (MariaDB)
 
-Three tables covers a typical volunteer sign-up flow: the volunteer's info, the events/shifts they can sign up for, and a join table linking the two (so one volunteer can sign up for multiple events).
+The live application uses three tables. Names are historical: the `volunteers` table holds **opportunities** and the `users` table holds **applications**.
 
 ```sql
-CREATE TABLE volunteers (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  full_name   VARCHAR(100)  NOT NULL,
-  email       VARCHAR(150)  NOT NULL UNIQUE,
-  phone       VARCHAR(20),
-  created_at  DATETIME      DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE events (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  title       VARCHAR(150)  NOT NULL,
-  description TEXT,
-  event_date  DATE          NOT NULL,
-  location    VARCHAR(150),
-  capacity    INT           DEFAULT NULL,   -- NULL = unlimited
-  created_at  DATETIME      DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE signups (
+CREATE TABLE accounts (              -- login identities
   id            INT AUTO_INCREMENT PRIMARY KEY,
-  volunteer_id  INT NOT NULL,
-  event_id      INT NOT NULL,
-  status        ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'confirmed',
-  signed_up_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (volunteer_id) REFERENCES volunteers(id) ON DELETE CASCADE,
-  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-  UNIQUE KEY unique_signup (volunteer_id, event_id)
+  username      VARCHAR(50)  NULL UNIQUE,
+  email         VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role          VARCHAR(20)  NOT NULL DEFAULT 'user',      -- 'user' | 'admin'
+  created_at    DATETIME
+);
+
+CREATE TABLE volunteers (            -- volunteer opportunities (Home page cards)
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(150) NOT NULL,
+  type        VARCHAR(50)  NOT NULL,                       -- Education | Environment | Outreach
+  description TEXT,
+  spots_left  INT NOT NULL DEFAULT 0,
+  image_url   VARCHAR(255) NULL,                           -- photo link, added in Checkpoint 14
+  created_at  DATETIME NOT NULL
+);
+
+CREATE TABLE users (                 -- submitted applications (4-step form)
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  volunteer_id  INT NULL,                                  -- the opportunity applied to
+  account_id    INT NULL,                                  -- FK to accounts (ON DELETE SET NULL)
+  first_name    VARCHAR(100) NOT NULL,
+  last_name     VARCHAR(100) NOT NULL,
+  email         VARCHAR(150) NOT NULL,
+  phone         VARCHAR(30)  NOT NULL,
+  age           INT NULL,
+  city          VARCHAR(100) NULL,
+  availability  TEXT NOT NULL,                             -- JSON array, e.g. ["Mon-Morning"]
+  experience    TEXT NULL,
+  skills        TEXT NULL,                                 -- JSON array
+  heard_about   VARCHAR(100) NULL,
+  agree_terms   TINYINT(1) NOT NULL DEFAULT 0,
+  status        VARCHAR(20) NOT NULL DEFAULT 'pending',    -- pending | approved | rejected
+  submitted_at  DATETIME
 );
 ```
 
-If your app is really just "one form, one event" (no multiple events to choose from), you can drop the `events` table entirely and put `event_name` / `event_date` directly on `signups`. Say so and I'll simplify this.
+Relationships: one account has many applications; one opportunity has many applications. Rules enforced in code: one application per account per opportunity, capacity reserved by an atomic `spots_left > 0` decrement inside a transaction, and deleting an application (or an account) gives its spot back.
+
+**Photos:** `image_url` stores only a link. Images are hotlinked from other websites; the server does not accept uploads or store image files.
+
+**Upgrading existing databases:** `sequelize.sync()` only creates missing tables. `server.js` adds `status`, `username`, `role`, and `account_id` when absent, but has no helper for `image_url` yet. Existing databases need `npm run db:import` or `ALTER TABLE volunteers ADD COLUMN image_url VARCHAR(255) NULL;` once.
 
 ## 4. API Routes
 
-| Method | Route | Purpose |
+| Method | Route | Access | Purpose |
+|---|---|---|---|
+| GET | `/api/health` | Public | Health check used by the tests |
+| GET | `/api/opportunities`, `/api/volunteers` | Public | List opportunities (includes `imageUrl`) |
+| GET | `/api/opportunities/:id`, `/api/volunteers/:id` | Public | One opportunity |
+| POST | `/api/auth/register` | Public | Create an account and return a JWT |
+| POST | `/api/auth/login` | Public | Log in and return a JWT |
+| GET | `/api/auth/me` | User | Current account (used to restore the session) |
+| DELETE | `/api/auth/me` | User | Delete own account and applications, restoring spots (test cleanup) |
+| GET | `/api/applications` | User | Only the caller's own applications |
+| POST | `/api/applications` | User | Submit an application (validated, duplicate- and capacity-checked) |
+| GET | `/api/admin/opportunities` | Admin | List opportunities |
+| POST | `/api/admin/opportunities` | Admin | Create an opportunity (optional `imageUrl`) |
+| PATCH | `/api/admin/opportunities/:id` | Admin | Update an opportunity, including its photo link |
+| DELETE | `/api/admin/opportunities/:id` | Admin | Delete (blocked with `409` while applications exist) |
+| GET | `/api/admin/applications` | Admin | All applications with the applicant's account email |
+| PATCH | `/api/admin/applications/:id/status` | Admin | Set `pending`, `approved`, or `rejected` |
+| DELETE | `/api/admin/applications/:id` | Admin | Delete an application and restore the spot |
+| GET | `/api/events` | Public | Legacy events list |
+| POST | `/api/volunteers/signup` | Public | Legacy event sign-up (not used by the frontend) |
+
+Errors are returned as JSON (`{ "message": ... }`). Missing or invalid tokens get `401`; a regular user calling an admin route gets `403`.
+
+## 5. Validation
+
+Every write is validated with Zod in the `validate(schema)` middleware, which puts the parsed result on `req.validatedBody`, and the same rules are mirrored in the browser for immediate feedback.
+
+* **Applications** (`application.schema.js`): names and city letters only, 11-digit phone, age 0–120 or blank, at least one `Day-Block` availability slot, skills from a fixed list, `heardAbout` from a fixed list, and terms must be accepted.
+* **Auth** (`auth.schema.js`): valid email, password 8–128 characters.
+* **Admin** (`admin.schema.js`): opportunity `name`, `type`, `description`, and non-negative `spotsLeft`; application status; and optional `imageUrl` (blank becomes `NULL`, otherwise `http://` or `https://`, 255 characters max).
+
+## 6. Authentication and Authorization
+
+1. Registration and login hash and compare passwords with bcryptjs and return a 7-day JWT.
+2. The client stores the token in local storage under `volunteer_portal_token` and restores the session through `GET /api/auth/me`.
+3. `requireAuth` verifies `Authorization: Bearer <token>` and loads the account; `requireAdmin` additionally requires `role === "admin"`.
+4. On the client, `RequireAuth` guards `/signup` and `/my-applications`, and `RequireAdmin` guards `/admin`. An expired or invalid token clears the session and redirects to login with a session-expired message.
+5. The definitive admin account is created (or promoted) at server startup from `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `server/.env`.
+
+## 7. Frontend Structure
+
+| Route | Page | Access |
 |---|---|---|
-| GET | `/api/events` | List all upcoming events |
-| GET | `/api/events/:id` | Get one event's details |
-| POST | `/api/events` | (admin) create an event |
-| POST | `/api/volunteers/signup` | Submit the sign-up form (creates volunteer if new, links to event) |
-| GET | `/api/signups` | (admin) list all signups |
-| GET | `/api/signups/:id` | Get one signup's details |
-| DELETE | `/api/signups/:id` | Cancel a signup |
+| `/` | `HomePage`: hero, search, category chips, full-bleed photo cards | Public |
+| `/login`, `/register` | Credential forms with show/hide password | Public |
+| `/signup` | `SignUpPage`: four-step form with a photo summary sidebar and success screen | Logged in |
+| `/my-applications` | `MyApplicationsPage`: the caller's applications with status tags | Logged in |
+| `/admin` | `AdminPage`: Opportunities (CRUD + Image URL) and Applications tabs | Admin |
 
-For the simplest version of the app, you may only need `GET /api/events` and `POST /api/volunteers/signup` — the rest can come later.
+**Design system** (`client/src/index.css`, branded "Signify"): teal/sage/amber tokens with a dark-mode variant, Fraunces / Public Sans / IBM Plex Mono fonts, a fixed circle-pattern background, and photo cards with a dark gradient for legibility. A "flat style overrides" block at the bottom of the file removes shadows and gradients and must stay last.
 
-## 5. Zod Validation Schemas
+**Photo handling:** `getOpportunityImageUrl()` returns the saved link or a built-in "No image yet" SVG placeholder, and `useFallbackImage` swaps in the placeholder if a link fails to load. Photos appear on Home cards, the application form sidebar, the admin form preview, and admin row thumbnails.
 
-Keep the shape identical on client and server so form errors match API errors exactly.
+## 8. Testing and Data Sync
 
-**`schemas/volunteer.schema.js`** (used in both `client/` and `server/`):
+* `npm run test:e2e` — smoke test: registers, applies, reloads, verifies persistence, and cleans up.
+* `npm run test:e2e:full` — comprehensive suite: public browsing, auth and guards, wizard validation, concurrency on the last spot, admin CRUD and authorization, CORS, Helmet, and cleanup.
+* `npm run test:e2e:headed` — the comprehensive suite in a visible, slowed-down browser.
+* `npm run db:export` / `npm run db:import` — move MariaDB data between laptops via `database/volunteer_app.sql`.
 
-```javascript
-import { z } from "zod";
+See [`E2E_TESTING.md`](./E2E_TESTING.md) for setup and requirements.
 
-export const volunteerSignupSchema = z.object({
-  fullName: z
-    .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(100),
-  email: z
-    .string()
-    .email("Enter a valid email address"),
-  phone: z
-    .string()
-    .regex(/^[\d\s\-\+\(\)]{7,20}$/, "Enter a valid phone number")
-    .optional()
-    .or(z.literal("")),
-  eventId: z
-    .number({ invalid_type_error: "Please select an event" })
-    .int()
-    .positive(),
-});
+## 9. Legacy Code from the Original Plan
 
-export type VolunteerSignupInput = z.infer<typeof volunteerSignupSchema>;
-```
+The first version of the project planned a different data model: a `volunteers` table of people (`full_name`, `email`, `phone`), an `events` table, and a `signups` join table, served by `POST /api/volunteers/signup` and `GET /api/events`. That code is still in the repository (`volunteer.model.js`, `event.model.js`, `signup.model.js`, the matching controllers, routes, and schema) and the server still seeds three starter events, but the current frontend does not use any of it.
 
-(Drop the `export type` line if you're using plain JavaScript, not TypeScript — it's TS-only syntax.)
-
-**Server-side validation middleware** (`middleware/validate.js`):
-
-```javascript
-export const validate = (schema) => (req, res, next) => {
-  const result = schema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: result.error.flatten().fieldErrors,
-    });
-  }
-  req.validatedBody = result.data;
-  next();
-};
-```
-
-Used in a route like:
-
-```javascript
-router.post("/signup", validate(volunteerSignupSchema), volunteerController.signup);
-```
-
-## 6. Suggested Build Order
-
-1. Scaffold `server/` — Express app, Sequelize connection to MariaDB, run migrations for the 3 tables.
-2. Build `GET /api/events` and `POST /api/volunteers/signup` end-to-end (route → controller → model), test with Postman/curl.
-3. Scaffold `client/` — Vite React app, build the form UI with the shared Zod schema for client-side validation.
-4. Wire the form to the API.
-5. Add the remaining routes (admin listing/cancel) once the core flow works.
-
-## 7. What to Tell Copilot
-
-Paste this whole file into your repo as `ARCHITECTURE.md`, then when prompting Copilot Chat in VS Code, reference it directly, e.g.:
-
-> "Following ARCHITECTURE.md, scaffold the Express server with the folder structure and the volunteers/events/signups models using Sequelize."
-
-Copilot will follow the structure much more reliably when it can see the whole plan at once rather than piecemeal.
+Be aware that the legacy `Volunteer` model and the current `VolunteerOpportunity` model both map to a table named `volunteers`. The live table (see the SQL export) has the opportunity columns, so the legacy sign-up endpoint is effectively unused. Removing the legacy models, routes, and the `events` / `signups` tables would remove that ambiguity, but that cleanup has not been done yet.

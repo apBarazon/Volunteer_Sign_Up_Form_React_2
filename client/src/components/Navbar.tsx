@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 type NavbarProps = {
@@ -6,24 +6,27 @@ type NavbarProps = {
   onToggleTheme: () => void;
 };
 
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+  isActive ? "nav-link nav-link-active" : "nav-link";
+
 function Navbar({ isDark, onToggleTheme }: NavbarProps) {
   const { account, logout } = useAuth();
 
   return (
     <nav className="navbar">
-      <span className="brand">VolunteerPortal</span>
+      <span className="brand">Signify</span>
       <div className="nav-links">
-        <Link to="/">Home</Link>
+        <NavLink to="/" end className={linkClass}>Home</NavLink>
         {account ? (
           <>
-            <Link to="/my-applications">My Applications</Link>
-            {account.role === "admin" && <Link to="/admin">Admin Panel</Link>}
+            <NavLink to="/my-applications" className={linkClass}>My Applications</NavLink>
+            {account.role === "admin" && <NavLink to="/admin" className={linkClass}>Admin Panel</NavLink>}
             <button type="button" className="nav-button" onClick={logout}>Log out</button>
           </>
         ) : (
           <>
-            <Link to="/login">Log in</Link>
-            <Link to="/register">Register</Link>
+            <NavLink to="/login" className={linkClass}>Log in</NavLink>
+            <NavLink to="/register" className={linkClass}>Register</NavLink>
           </>
         )}
         <button type="button" className="theme-toggle" onClick={onToggleTheme} aria-label="Toggle color theme">
